@@ -344,6 +344,8 @@ class AppState {
       this.renderVehicles();
     } else if (window.location.hash.replace("#", "") === "drivers") {
       this.renderDrivers();
+    } else if (window.location.hash.replace("#", "") === "trips") {
+      this.renderTrips();
     }
   }
 
@@ -400,6 +402,8 @@ class AppState {
         this.renderVehicles();
       } else if (tabId === "drivers") {
         this.renderDrivers();
+      } else if (tabId === "trips") {
+        this.renderTrips();
       }
 
       this.addLog(`Switched view to '${this.capitalizeFirstLetter(tabId)}'.`);
@@ -1160,6 +1164,302 @@ class AppState {
       this.renderDrivers();
     }
   }
+
+  renderTrips() {
+    const searchVal = document.getElementById("trip-search").value.toLowerCase().trim();
+    const filterStatus = document.getElementById("trip-filter-status").value;
+
+    let filtered = this.trips.filter(t => {
+      const matchesSearch = t.source.toLowerCase().includes(searchVal) || 
+                            t.destination.toLowerCase().includes(searchVal) ||
+                            t.id.toLowerCase().includes(searchVal);
+      const matchesStatus = !filterStatus || t.status === filterStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+
+    const tbody = document.getElementById("trip-table-body");
+    if (!tbody) return;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="color: var(--text-muted); padding: 2rem;">No trips found matching filters.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(t => {
+      let badgeClass = "badge-muted"; // Draft (gray)
+      if (t.status === "Dispatched") badgeClass = "badge-safety"; // Amber
+      else if (t.status === "Completed") badgeClass = "badge-driver"; // Green
+      else if (t.status === "Cancelled") badgeClass = "badge-danger"; // Red
+
+      let actionsHTML = "";
+      if (t.status === "Draft") {
+        actionsHTML = `
+          <button class="btn btn-secondary btn-small" onclick="app.dispatchTrip('${t.id}')">Dispatch</button>
+          <button class="btn btn-danger btn-small" onclick="app.cancelTrip('${t.id}')">Cancel</button>
+        `;
+      } else if (t.status === "Dispatched") {
+        actionsHTML = `
+          <button class="btn btn-secondary btn-small btn-warning-small" onclick="app.openCompleteTripModal('${t.id}', '${t.vehicle}')">Complete</button>
+          <button class="btn btn-danger btn-small" onclick="app.cancelTrip('${t.id}')">Cancel</button>
+        `;
+      } else {
+        actionsHTML = `<span style="font-size: 0.75rem; color: var(--text-muted);">None</span>`;
+      }
+
+      return `
+        <tr>
+          <td style="font-weight: 600; font-family: monospace;">${t.id}</td>
+          <td>${t.source}</td>
+          <td>${t.destination}</td>
+          <td style="font-family: monospace; font-weight: 600;">${t.vehicle}</td>
+          <td>${t.driver}</td>
+          <td>${t.weight.toLocaleString()} kg</td>
+          <td>${t.distance.toLocaleString()} km</td>
+          <td><span class="badge ${badgeClass}">${t.status}</span></td>
+          <td class="actions-cell">${actionsHTML}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  openCreateTripModal() {
+    const today = new Date();
+    
+    // Populate Vehicles dropdown (Available only)
+    const vehicleSelect = document.getElementById("trip-vehicle");
+    const availableVehicles = this.vehicles.filter(v => v.status === "Available");
+    
+    if (availableVehicles.length === 0) {
+      vehicleSelect.innerHTML = `<option value="">No vehicles available</option>`;
+    } else {
+      vehicleSelect.innerHTML = availableVehicles.map(v => 
+        `<option value="${v.registration}">${v.registration} - ${v.name} (${v.capacity.toLocaleString()} kg)</option>`
+      ).join('');
+    }
+
+    // Populate Drivers dropdown (Available & not expired CDL)
+    const driverSelect = document.getElementById("trip-driver");
+    const availableDrivers = this.drivers.filter(d => {
+      const isAvailable = d.status === "Available";
+      const isNotExpired = new Date(d.expiry) >= today;
+      return isAvailable && isNotExpired;
+    });
+
+    if (availableDrivers.length === 0) {
+      driverSelect.innerHTML = `<option value="">No drivers available</option>`;
+    } else {
+      driverSelect.innerHTML = availableDrivers.map(d => 
+        `<option value="${d.name}">${d.name} (Safety: ${d.safetyScore})</option>`
+      ).join('');
+    }
+
+    // Reset fields
+    document.getElementById("trip-source").value = "";
+    document.getElementById("trip-destination").value = "";
+    document.getElementById("trip-weight").value = "";
+    document.getElementById("trip-distance").value = "";
+
+    document.getElementById("trip-form-error").classList.add("hidden");
+    document.getElementById("trip-modal").classList.add("active");
+  }
+
+  closeTripModal() {
+    document.getElementById("trip-modal").classList.remove("active");
+    document.getElementById("trip-form").reset();
+  }
+
+  handleTripFormSubmit() {
+    const source = document.getElementById("trip-source").value.trim();
+    const destination = document.getElementById("trip-destination").value.trim();
+    const weight = parseInt(document.getElementById("trip-weight").value);
+    const distance = parseInt(document.getElementById("trip-distance").value);
+    const vehicleReg = document.getElementById("trip-vehicle").value;
+    const driverName = document.getElementById("trip-driver").value;
+
+    const errorDiv = document.getElementById("trip-form-error");
+
+    if (!source || !destination || isNaN(weight) || isNaN(distance) || !vehicleReg || !driverName) {
+      errorDiv.innerText = "All fields are required.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    // Cargo weight vs max capacity business rule validation
+    const vehicle = this.vehicles.find(v => v.registration === vehicleReg);
+    if (!vehicle) {
+      errorDiv.innerText = "Selected vehicle not found.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    if (weight > vehicle.capacity) {
+      errorDiv.innerText = `Cargo Weight (${weight.toLocaleString()} kg) exceeds vehicle's maximum load capacity (${vehicle.capacity.toLocaleString()} kg).`;
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    // Generate new trip ID
+    const tripId = `TRP-${100 + this.trips.length + 1}`;
+    
+    const newTrip = {
+      id: tripId,
+      source,
+      destination,
+      vehicle: vehicleReg,
+      driver: driverName,
+      weight,
+      distance,
+      status: "Draft"
+    };
+
+    this.trips.push(newTrip);
+    this.addLog(`Created draft trip: '${tripId}' from '${source}' to '${destination}'.`);
+    this.saveToStorage();
+    this.renderTrips();
+    this.closeTripModal();
+  }
+
+     dispatchTrip(id) {
+       const trip = this.trips.find(t => t.id === id);
+       if (!trip) return;
+
+       // Double-check availability of vehicle & driver
+       const vehicle = this.vehicles.find(v => v.registration === trip.vehicle);
+       const driver = this.drivers.find(d => d.name === trip.driver);
+
+       if (!vehicle || vehicle.status !== "Available") {
+         alert(`Cannot dispatch: Assigned vehicle '${trip.vehicle}' is no longer available.`);
+         return;
+       }
+
+       if (!driver || driver.status !== "Available") {
+         alert(`Cannot dispatch: Assigned driver '${trip.driver}' is no longer available.`);
+         return;
+       }
+
+       // Safety double-check on driver's license
+       if (new Date(driver.expiry) < new Date()) {
+         alert(`Cannot dispatch: Assigned driver '${trip.driver}' has an expired license.`);
+         return;
+       }
+
+       // Update statuses
+       vehicle.status = "On Trip";
+       driver.status = "On Trip";
+       trip.status = "Dispatched";
+
+       this.addLog(`Dispatched trip: '${id}' using vehicle '${trip.vehicle}' and driver '${trip.driver}'.`);
+       this.saveToStorage();
+       this.renderTrips();
+     }
+
+     cancelTrip(id) {
+       const trip = this.trips.find(t => t.id === id);
+       if (!trip) return;
+
+       // If currently dispatched, release vehicle and driver
+       if (trip.status === "Dispatched") {
+         const vehicle = this.vehicles.find(v => v.registration === trip.vehicle);
+         const driver = this.drivers.find(d => d.name === trip.driver);
+
+         if (vehicle && vehicle.status === "On Trip") vehicle.status = "Available";
+         if (driver && driver.status === "On Trip") driver.status = "Available";
+       }
+
+       trip.status = "Cancelled";
+       this.addLog(`Cancelled trip: '${id}'.`);
+       this.saveToStorage();
+       this.renderTrips();
+     }
+
+     openCompleteTripModal(id, vehicleReg) {
+       const vehicle = this.vehicles.find(v => v.registration === vehicleReg);
+       if (!vehicle) return;
+
+       document.getElementById("trip-complete-id").value = id;
+       document.getElementById("trip-complete-vehicle-reg").value = vehicleReg;
+       document.getElementById("trip-complete-curr-odo").value = `${vehicle.odometer.toLocaleString()} km`;
+       document.getElementById("trip-complete-final-odo").value = "";
+       document.getElementById("trip-complete-fuel-liters").value = "";
+       document.getElementById("trip-complete-fuel-cost").value = "";
+
+       document.getElementById("trip-complete-form-error").classList.add("hidden");
+       document.getElementById("trip-complete-modal").classList.add("active");
+     }
+
+     closeTripCompleteModal() {
+       document.getElementById("trip-complete-modal").classList.remove("active");
+       document.getElementById("trip-complete-form").reset();
+     }
+
+     calculateFuelCostPreset() {
+       const liters = parseInt(document.getElementById("trip-complete-fuel-liters").value);
+       const fuelCostInput = document.getElementById("trip-complete-fuel-cost");
+       if (!isNaN(liters) && liters > 0) {
+         fuelCostInput.value = Math.round(liters * 1.6); // Preset calculation ($1.60 per liter)
+       } else {
+         fuelCostInput.value = "";
+       }
+     }
+
+     handleTripCompleteSubmit() {
+       const id = document.getElementById("trip-complete-id").value;
+       const vehicleReg = document.getElementById("trip-complete-vehicle-reg").value;
+       const finalOdo = parseInt(document.getElementById("trip-complete-final-odo").value);
+       const fuelLiters = parseInt(document.getElementById("trip-complete-fuel-liters").value);
+       const fuelCost = parseInt(document.getElementById("trip-complete-fuel-cost").value);
+
+       const errorDiv = document.getElementById("trip-complete-form-error");
+
+       const trip = this.trips.find(t => t.id === id);
+       const vehicle = this.vehicles.find(v => v.registration === vehicleReg);
+       const driver = this.drivers.find(d => d.name === (trip ? trip.driver : ""));
+
+       if (!trip || !vehicle || !driver) {
+         errorDiv.innerText = "Invalid trip, vehicle, or driver state.";
+         errorDiv.classList.remove("hidden");
+         return;
+       }
+
+       if (isNaN(finalOdo) || finalOdo <= vehicle.odometer) {
+         errorDiv.innerText = `Final odometer must exceed the vehicle's current odometer (${vehicle.odometer.toLocaleString()} km).`;
+         errorDiv.classList.remove("hidden");
+         return;
+       }
+
+       if (isNaN(fuelLiters) || fuelLiters <= 0 || isNaN(fuelCost) || fuelCost <= 0) {
+         errorDiv.innerText = "Please provide valid fuel metrics.";
+         errorDiv.classList.remove("hidden");
+         return;
+       }
+
+       // Update vehicle's odometer
+       vehicle.odometer = finalOdo;
+
+       // Automatically generate a fuel expense log
+       const expId = `EXP-${400 + this.expenses.length + 1}`;
+       const newFuelExpense = {
+         id: expId,
+         vehicle: vehicleReg,
+         type: "Fuel",
+         liters: fuelLiters,
+         cost: fuelCost,
+         date: new Date().toISOString().split("T")[0],
+         description: `Auto logged fuel from completed trip '${id}'`
+       };
+       this.expenses.push(newFuelExpense);
+
+       // Set statuses back to Available
+       vehicle.status = "Available";
+       driver.status = "Available";
+       trip.status = "Completed";
+
+       this.addLog(`Completed trip: '${id}'. Logged fuel expense '${expId}' ($${fuelCost}) & set vehicle odometer to '${finalOdo} km'.`);
+    this.saveToStorage();
+    this.renderTrips();
+    this.closeTripCompleteModal();
+  }
 }
 
 // Instantiate state globally
@@ -1273,6 +1573,24 @@ document.addEventListener("DOMContentLoaded", () => {
   driverForm.addEventListener("submit", (e) => {
     e.preventDefault();
     app.handleDriverFormSubmit();
+  });
+
+  // Trip Management bindings
+  const tripSearch = document.getElementById("trip-search");
+  tripSearch.addEventListener("input", () => app.renderTrips());
+
+  document.getElementById("trip-filter-status").addEventListener("change", () => app.renderTrips());
+
+  const tripForm = document.getElementById("trip-form");
+  tripForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    app.handleTripFormSubmit();
+  });
+
+  const tripCompleteForm = document.getElementById("trip-complete-form");
+  tripCompleteForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    app.handleTripCompleteSubmit();
   });
 
   // Bind global routing to hashchange
