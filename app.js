@@ -342,6 +342,8 @@ class AppState {
     // If currently on vehicles view, refresh list
     if (window.location.hash.replace("#", "") === "vehicles") {
       this.renderVehicles();
+    } else if (window.location.hash.replace("#", "") === "drivers") {
+      this.renderDrivers();
     }
   }
 
@@ -396,6 +398,8 @@ class AppState {
         this.updateDashboard();
       } else if (tabId === "vehicles") {
         this.renderVehicles();
+      } else if (tabId === "drivers") {
+        this.renderDrivers();
       }
 
       this.addLog(`Switched view to '${this.capitalizeFirstLetter(tabId)}'.`);
@@ -957,6 +961,205 @@ class AppState {
       this.renderVehicles();
     }
   }
+
+  renderDrivers() {
+    const searchVal = document.getElementById("driver-search").value.toLowerCase().trim();
+    const filterStatus = document.getElementById("driver-filter-status").value;
+    const filterCategory = document.getElementById("driver-filter-category").value;
+    const sortBy = document.getElementById("driver-sort-by").value;
+
+    let filtered = this.drivers.filter(d => {
+      const matchesSearch = d.name.toLowerCase().includes(searchVal) || 
+                            d.license.toLowerCase().includes(searchVal);
+      const matchesStatus = !filterStatus || d.status === filterStatus;
+      const matchesCategory = !filterCategory || d.category === filterCategory;
+
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+
+    // Sort
+    if (sortBy === "safety-desc") {
+      filtered.sort((a, b) => b.safetyScore - a.safetyScore);
+    } else if (sortBy === "safety-asc") {
+      filtered.sort((a, b) => a.safetyScore - b.safetyScore);
+    } else if (sortBy === "expiry-asc") {
+      filtered.sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+    }
+
+    const tbody = document.getElementById("driver-table-body");
+    if (!tbody) return;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="color: var(--text-muted); padding: 2rem;">No drivers found matching filters.</td></tr>`;
+      return;
+    }
+
+    const today = new Date();
+    const next30Days = new Date();
+    next30Days.setDate(today.getDate() + 30);
+
+    tbody.innerHTML = filtered.map(d => {
+      let badgeClass = "badge-driver"; // Available (green)
+      if (d.status === "On Trip") badgeClass = "badge-manager"; // Blue
+      else if (d.status === "Off Duty") badgeClass = "badge-muted"; // Gray
+      else if (d.status === "Suspended") badgeClass = "badge-danger"; // Red
+
+      // Compliance warning for safety score
+      let safetyHTML = `<strong>${d.safetyScore}</strong>`;
+      if (d.safetyScore >= 90) {
+        safetyHTML = `<strong class="text-success">${d.safetyScore}</strong>`;
+      } else if (d.safetyScore < 80) {
+        safetyHTML = `<strong class="text-danger">${d.safetyScore}</strong>`;
+      } else {
+        safetyHTML = `<strong class="text-warning">${d.safetyScore}</strong>`;
+      }
+
+      // Compliance check for license expiry
+      const expiryDate = new Date(d.expiry);
+      let expiryHTML = d.expiry;
+      if (expiryDate < today) {
+        expiryHTML = `<span class="text-danger" style="font-weight: 600;">${d.expiry} (EXPIRED)</span>`;
+      } else if (expiryDate <= next30Days) {
+        expiryHTML = `<span class="text-warning" style="font-weight: 600;">${d.expiry} (EXPIRING SOON)</span>`;
+      }
+
+      return `
+        <tr>
+          <td style="font-weight: 600;">${d.name}</td>
+          <td style="font-family: monospace;">${d.license}</td>
+          <td>${d.category}</td>
+          <td>${expiryHTML}</td>
+          <td>${d.phone}</td>
+          <td>${safetyHTML}</td>
+          <td><span class="badge ${badgeClass}">${d.status}</span></td>
+          <td class="actions-cell">
+            <button class="btn btn-secondary btn-small btn-warning-small" onclick="app.openEditDriverModal('${d.license}')">Edit</button>
+            <button class="btn btn-danger btn-small" onclick="app.deleteDriver('${d.license}')">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  openAddDriverModal() {
+    document.getElementById("driver-form-mode").value = "add";
+    document.getElementById("driver-old-license").value = "";
+    document.getElementById("driver-modal-title").innerText = "Register New Driver";
+
+    const licenseInput = document.getElementById("driver-license");
+    licenseInput.value = "";
+    licenseInput.disabled = false;
+
+    document.getElementById("driver-name").value = "";
+    document.getElementById("driver-category").value = "Class A CDL";
+    document.getElementById("driver-expiry").value = "";
+    document.getElementById("driver-phone").value = "";
+    document.getElementById("driver-safety").value = "";
+    document.getElementById("driver-status").value = "Available";
+
+    document.getElementById("driver-form-error").classList.add("hidden");
+    document.getElementById("driver-modal").classList.add("active");
+  }
+
+  openEditDriverModal(license) {
+    const driver = this.drivers.find(d => d.license === license);
+    if (!driver) return;
+
+    document.getElementById("driver-form-mode").value = "edit";
+    document.getElementById("driver-old-license").value = license;
+    document.getElementById("driver-modal-title").innerText = "Edit Driver Profile";
+
+    const licenseInput = document.getElementById("driver-license");
+    licenseInput.value = driver.license;
+    licenseInput.disabled = true; // License is unique/read-only on edit
+
+    document.getElementById("driver-name").value = driver.name;
+    document.getElementById("driver-category").value = driver.category;
+    document.getElementById("driver-expiry").value = driver.expiry;
+    document.getElementById("driver-phone").value = driver.phone;
+    document.getElementById("driver-safety").value = driver.safetyScore;
+    document.getElementById("driver-status").value = driver.status;
+
+    document.getElementById("driver-form-error").classList.add("hidden");
+    document.getElementById("driver-modal").classList.add("active");
+  }
+
+  closeDriverModal() {
+    document.getElementById("driver-modal").classList.remove("active");
+    document.getElementById("driver-form").reset();
+  }
+
+  handleDriverFormSubmit() {
+    const mode = document.getElementById("driver-form-mode").value;
+    const oldLicense = document.getElementById("driver-old-license").value;
+    const name = document.getElementById("driver-name").value.trim();
+    const license = document.getElementById("driver-license").value.trim().toUpperCase();
+    const category = document.getElementById("driver-category").value;
+    const expiry = document.getElementById("driver-expiry").value;
+    const phone = document.getElementById("driver-phone").value.trim();
+    const safetyScore = parseInt(document.getElementById("driver-safety").value);
+    const status = document.getElementById("driver-status").value;
+
+    const errorDiv = document.getElementById("driver-form-error");
+
+    if (!name || !license || !expiry || !phone || isNaN(safetyScore)) {
+      errorDiv.innerText = "All fields are required.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    if (safetyScore < 0 || safetyScore > 100) {
+      errorDiv.innerText = "Safety score must be between 0 and 100.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    // Uniqueness Check
+    if (mode === "add") {
+      const exists = this.drivers.some(d => d.license === license);
+      if (exists) {
+        errorDiv.innerText = `A driver with license number '${license}' already exists.`;
+        errorDiv.classList.remove("hidden");
+        return;
+      }
+
+      const newDriver = { name, license, category, expiry, phone, safetyScore, status };
+      this.drivers.push(newDriver);
+      this.addLog(`Registered new driver profile: '${name}' (${license}).`);
+    } else if (mode === "edit") {
+      const driverIndex = this.drivers.findIndex(d => d.license === oldLicense);
+      if (driverIndex === -1) {
+        errorDiv.innerText = "Driver profile not found.";
+        errorDiv.classList.remove("hidden");
+        return;
+      }
+
+      this.drivers[driverIndex].name = name;
+      this.drivers[driverIndex].category = category;
+      this.drivers[driverIndex].expiry = expiry;
+      this.drivers[driverIndex].phone = phone;
+      this.drivers[driverIndex].safetyScore = safetyScore;
+      this.drivers[driverIndex].status = status;
+
+      this.addLog(`Updated driver profile: '${name}' (${oldLicense}).`);
+    }
+
+    this.saveToStorage();
+    this.renderDrivers();
+    this.closeDriverModal();
+  }
+
+  deleteDriver(license) {
+    const driver = this.drivers.find(d => d.license === license);
+    const name = driver ? driver.name : license;
+    
+    if (confirm(`Are you sure you want to delete driver profile for '${name}'? This action cannot be undone.`)) {
+      this.drivers = this.drivers.filter(d => d.license !== license);
+      this.saveToStorage();
+      this.addLog(`Deleted driver profile: '${name}' (${license}).`);
+      this.renderDrivers();
+    }
+  }
 }
 
 // Instantiate state globally
@@ -1053,6 +1256,23 @@ document.addEventListener("DOMContentLoaded", () => {
   vehicleForm.addEventListener("submit", (e) => {
     e.preventDefault();
     app.handleVehicleFormSubmit();
+  });
+
+  // Driver Management Filters bindings
+  const driverSearch = document.getElementById("driver-search");
+  driverSearch.addEventListener("input", () => app.renderDrivers());
+
+  document.getElementById("driver-filter-status").addEventListener("change", () => app.renderDrivers());
+  document.getElementById("driver-filter-category").addEventListener("change", () => app.renderDrivers());
+  document.getElementById("driver-sort-by").addEventListener("change", () => app.renderDrivers());
+
+  const btnAddDriver = document.getElementById("btn-add-driver");
+  btnAddDriver.addEventListener("click", () => app.openAddDriverModal());
+
+  const driverForm = document.getElementById("driver-form");
+  driverForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    app.handleDriverFormSubmit();
   });
 
   // Bind global routing to hashchange

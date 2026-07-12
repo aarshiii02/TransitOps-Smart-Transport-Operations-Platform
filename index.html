@@ -428,12 +428,123 @@
         <section id="view-drivers" class="view-section hidden">
           <div class="view-header">
             <h2>Driver Management</h2>
-            <p>Monitor driver records, safety scores, and compliance.</p>
+            <p>Monitor driver profiles, safety scores, licensing details, and compliance.</p>
           </div>
+          
           <div class="card">
-            <p>This module requires <strong>Fleet Manager</strong> or <strong>Safety Officer</strong> permissions.</p>
+            <!-- Driver Controls Header -->
+            <div class="registry-controls">
+              <div class="search-filter-bar">
+                <div class="search-input-wrapper">
+                  <svg class="search-icon-svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                  <input type="text" id="driver-search" class="search-control" placeholder="Search by name, license...">
+                </div>
+                <select id="driver-filter-status" class="registry-select">
+                  <option value="">All Statuses</option>
+                  <option value="Available">Available</option>
+                  <option value="On Trip">On Trip</option>
+                  <option value="Off Duty">Off Duty</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+                <select id="driver-filter-category" class="registry-select">
+                  <option value="">All Categories</option>
+                  <option value="Class A CDL">Class A CDL</option>
+                  <option value="Class B CDL">Class B CDL</option>
+                  <option value="Class C">Class C</option>
+                </select>
+                <select id="driver-sort-by" class="registry-select">
+                  <option value="">Sort By</option>
+                  <option value="safety-desc">Safety Score (High to Low)</option>
+                  <option value="safety-asc">Safety Score (Low to High)</option>
+                  <option value="expiry-asc">License Expiry (Soonest first)</option>
+                </select>
+              </div>
+              <button id="btn-add-driver" class="btn btn-primary">Add Driver</button>
+            </div>
+
+            <!-- Table Container -->
+            <div class="table-container">
+              <table class="data-table" id="driver-table">
+                <thead>
+                  <tr>
+                    <th>Driver Name</th>
+                    <th>License Number</th>
+                    <th>License Category</th>
+                    <th>License Expiry</th>
+                    <th>Contact Number</th>
+                    <th>Safety Score</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="driver-table-body">
+                  <!-- Dynamically populated in app.js -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
+
+        <!-- ADD/EDIT DRIVER MODAL OVERLAY -->
+        <div id="driver-modal" class="modal-overlay">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h3 id="driver-modal-title">Register New Driver</h3>
+              <button class="btn btn-icon close-modal-btn" onclick="app.closeDriverModal()">&times;</button>
+            </div>
+            <form id="driver-form">
+              <input type="hidden" id="driver-form-mode" value="add"> <!-- 'add' or 'edit' -->
+              <input type="hidden" id="driver-old-license" value=""> <!-- tracking key if changing license -->
+              <div class="modal-body">
+                <div class="form-grid-2">
+                  <div class="input-group">
+                    <label for="driver-name">Full Name</label>
+                    <input type="text" id="driver-name" required placeholder="e.g. John Doe">
+                  </div>
+                  <div class="input-group">
+                    <label for="driver-license">License Number (Unique)</label>
+                    <input type="text" id="driver-license" required placeholder="e.g. DL-12345">
+                  </div>
+                  <div class="input-group">
+                    <label for="driver-category">License Category</label>
+                    <select id="driver-category" class="filter-control" style="background-color: var(--input-bg);" required>
+                      <option value="Class A CDL">Class A CDL</option>
+                      <option value="Class B CDL">Class B CDL</option>
+                      <option value="Class C">Class C</option>
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label for="driver-expiry">License Expiry Date</label>
+                    <input type="date" id="driver-expiry" required>
+                  </div>
+                  <div class="input-group">
+                    <label for="driver-phone">Contact Number</label>
+                    <input type="text" id="driver-phone" required placeholder="e.g. 555-0100">
+                  </div>
+                  <div class="input-group">
+                    <label for="driver-safety">Safety Score (0 - 100)</label>
+                    <input type="number" id="driver-safety" required min="0" max="100" placeholder="e.g. 95">
+                  </div>
+                  <div class="input-group form-group-full">
+                    <label for="driver-status">Status</label>
+                    <select id="driver-status" class="filter-control" style="background-color: var(--input-bg);" required>
+                      <option value="Available">Available</option>
+                      <option value="On Trip">On Trip</option>
+                      <option value="Off Duty">Off Duty</option>
+                      <option value="Suspended">Suspended</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="driver-form-error" class="error-msg mt-4 hidden"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="app.closeDriverModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Driver</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
 
         <!-- TRIP MANAGEMENT VIEW -->
         <section id="view-trips" class="view-section hidden">
