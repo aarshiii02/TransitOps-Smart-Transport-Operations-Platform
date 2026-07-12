@@ -350,6 +350,8 @@ class AppState {
       this.renderMaintenance();
     } else if (window.location.hash.replace("#", "") === "expenses") {
       this.renderExpenses();
+    } else if (window.location.hash.replace("#", "") === "reports") {
+      this.renderReports();
     }
   }
 
@@ -412,6 +414,8 @@ class AppState {
         this.renderMaintenance();
       } else if (tabId === "expenses") {
         this.renderExpenses();
+      } else if (tabId === "reports") {
+        this.renderReports();
       }
 
       this.addLog(`Switched view to '${this.capitalizeFirstLetter(tabId)}'.`);
@@ -1802,6 +1806,163 @@ class AppState {
     this.saveToStorage();
     this.renderExpenses();
     this.closeExpenseModal();
+  }
+
+  renderReports() {
+    const tbody = document.getElementById("reports-table-body");
+    if (!tbody) return;
+
+    let totalFleetCost = 0;
+    let totalFleetAcquisition = 0;
+    let totalFleetDistance = 0;
+    let totalFleetFuel = 0;
+    let totalFleetRevenue = 0;
+
+    const vehicleMetrics = this.vehicles.map(v => {
+      // 1. Distance Run
+      const distanceRun = this.trips
+        .filter(t => t.vehicle === v.registration && t.status === "Completed")
+        .reduce((sum, t) => sum + t.distance, 0);
+
+      // 2. Fuel Consumed (Liters)
+      const tripFuel = this.trips
+        .filter(t => t.vehicle === v.registration && t.status === "Completed" && t.fuelConsumed)
+        .reduce((sum, t) => sum + t.fuelConsumed, 0);
+      const manualFuelLiters = this.expenses
+        .filter(e => e.vehicle === v.registration && e.type === "Fuel" && e.liters)
+        .reduce((sum, e) => sum + e.liters, 0);
+      const fuelConsumed = tripFuel + manualFuelLiters;
+
+      // 3. Operational Cost
+      const fuelCost = this.expenses
+        .filter(e => e.vehicle === v.registration && e.type === "Fuel")
+        .reduce((sum, e) => sum + e.cost, 0);
+      const manualMaintCost = this.expenses
+        .filter(e => e.vehicle === v.registration && e.type === "Maintenance")
+        .reduce((sum, e) => sum + e.cost, 0);
+      const loggedMaintCost = this.maintenance
+        .filter(m => m.vehicle === v.registration && m.status === "Completed")
+        .reduce((sum, m) => sum + m.cost, 0);
+      const maintCost = manualMaintCost + loggedMaintCost;
+      const tollsOtherCost = this.expenses
+        .filter(e => e.vehicle === v.registration && (e.type === "Tolls" || e.type === "Other"))
+        .reduce((sum, e) => sum + e.cost, 0);
+      const operationalCost = fuelCost + maintCost + tollsOtherCost;
+
+      // 4. Revenue (rate of $0.003 per kg-km)
+      const revenue = this.trips
+        .filter(t => t.vehicle === v.registration && t.status === "Completed")
+        .reduce((sum, t) => sum + (t.distance * t.weight * 0.003), 0);
+
+      // 5. Profit
+      const netProfit = revenue - operationalCost;
+
+      // 6. ROI
+      const roi = v.cost > 0 ? (netProfit / v.cost) * 100 : 0;
+
+      // Aggregates
+      totalFleetCost += operationalCost;
+      totalFleetAcquisition += v.cost;
+      totalFleetDistance += distanceRun;
+      totalFleetFuel += fuelConsumed;
+      totalFleetRevenue += revenue;
+
+      return {
+        reg: v.registration,
+        odometer: v.odometer,
+        distanceRun,
+        fuelConsumed,
+        operationalCost,
+        revenue,
+        netProfit,
+        roi
+      };
+    });
+
+    // Populate widgets
+    document.getElementById("report-total-cost").innerText = `$${totalFleetCost.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    
+    const activeVehicles = this.vehicles.filter(v => v.status === "On Trip").length;
+    const utilizationPct = this.vehicles.length > 0 ? (activeVehicles / this.vehicles.length) * 100 : 0;
+    document.getElementById("report-utilization").innerText = `${utilizationPct.toFixed(1)}%`;
+
+    const avgEfficiency = totalFleetFuel > 0 ? totalFleetDistance / totalFleetFuel : 0;
+    document.getElementById("report-avg-efficiency").innerText = `${avgEfficiency.toFixed(2)} km/L`;
+
+    const fleetRoi = totalFleetAcquisition > 0 ? ((totalFleetRevenue - totalFleetCost) / totalFleetAcquisition) * 100 : 0;
+    document.getElementById("report-avg-roi").innerText = `${fleetRoi.toFixed(2)}%`;
+
+    // Render rows
+    tbody.innerHTML = vehicleMetrics.map(vm => {
+      const efficiencyStr = vm.fuelConsumed > 0 ? `${(vm.distanceRun / vm.fuelConsumed).toFixed(2)} km/L` : "N/A";
+      const roiClass = vm.roi >= 0 ? "text-success" : "text-danger";
+      return `
+        <tr>
+          <td style="font-weight: 600; font-family: monospace;">${vm.reg}</td>
+          <td>${vm.odometer.toLocaleString()} km</td>
+          <td>${vm.distanceRun.toLocaleString()} km</td>
+          <td>${efficiencyStr}</td>
+          <td style="color: var(--color-finance); font-weight: 600;">$${vm.operationalCost.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+          <td style="color: var(--color-driver); font-weight: 600;">$${vm.revenue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+          <td style="font-weight: 600;">$${vm.netProfit.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+          <td class="${roiClass}" style="font-weight: 700;">${vm.roi.toFixed(2)}%</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  exportReportsCSV() {
+    let csv = "Vehicle Registration,Odometer (km),Distance Run (km),Fuel Efficiency,Operational Cost ($),Revenue ($),Net Profit ($),ROI (%)\n";
+
+    this.vehicles.forEach(v => {
+      const distanceRun = this.trips
+        .filter(t => t.vehicle === v.registration && t.status === "Completed")
+        .reduce((sum, t) => sum + t.distance, 0);
+
+      const tripFuel = this.trips
+        .filter(t => t.vehicle === v.registration && t.status === "Completed" && t.fuelConsumed)
+        .reduce((sum, t) => sum + t.fuelConsumed, 0);
+      const manualFuelLiters = this.expenses
+        .filter(e => e.vehicle === v.registration && e.type === "Fuel" && e.liters)
+        .reduce((sum, e) => sum + e.liters, 0);
+      const fuelConsumed = tripFuel + manualFuelLiters;
+
+      const fuelCost = this.expenses
+        .filter(e => e.vehicle === v.registration && e.type === "Fuel")
+        .reduce((sum, e) => sum + e.cost, 0);
+      const manualMaintCost = this.expenses
+        .filter(e => e.vehicle === v.registration && e.type === "Maintenance")
+        .reduce((sum, e) => sum + e.cost, 0);
+      const loggedMaintCost = this.maintenance
+        .filter(m => m.vehicle === v.registration && m.status === "Completed")
+        .reduce((sum, m) => sum + m.cost, 0);
+      const maintCost = manualMaintCost + loggedMaintCost;
+      const tollsOtherCost = this.expenses
+        .filter(e => e.vehicle === v.registration && (e.type === "Tolls" || e.type === "Other"))
+        .reduce((sum, e) => sum + e.cost, 0);
+      const operationalCost = fuelCost + maintCost + tollsOtherCost;
+
+      const revenue = this.trips
+        .filter(t => t.vehicle === v.registration && t.status === "Completed")
+        .reduce((sum, t) => sum + (t.distance * t.weight * 0.003), 0);
+
+      const netProfit = revenue - operationalCost;
+      const roi = v.cost > 0 ? (netProfit / v.cost) * 100 : 0;
+      const efficiencyStr = fuelConsumed > 0 ? (distanceRun / fuelConsumed).toFixed(2) : "N/A";
+
+      csv += `"${v.registration}","${v.odometer}","${distanceRun}","${efficiencyStr}","${operationalCost}","${revenue}","${netProfit}","${roi.toFixed(2)}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `transitops_fleet_report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    this.addLog("Exported fleet financial reports to CSV.");
   }
 }
 

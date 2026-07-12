@@ -905,12 +905,66 @@
         <section id="view-reports" class="view-section hidden">
           <div class="view-header">
             <h2>Reports & Analytics</h2>
-            <p>Review financial performance, fleet ROI, and export data.</p>
+            <p>Monitor fleet return on investment, operational fuel efficiency, and export compliance reports.</p>
           </div>
+
+          <!-- Reports Overview Cards -->
+          <div class="grid-2" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 2rem; gap: 1rem;">
+            <div class="card" style="padding: 1.25rem; text-align: center;">
+              <h4 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Total Operational Cost</h4>
+              <p id="report-total-cost" style="font-size: 1.5rem; font-weight: 700; color: var(--color-finance);">$0</p>
+            </div>
+            <div class="card" style="padding: 1.25rem; text-align: center;">
+              <h4 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Fleet Utilization</h4>
+              <p id="report-utilization" style="font-size: 1.5rem; font-weight: 700; color: var(--color-manager);">0%</p>
+            </div>
+            <div class="card" style="padding: 1.25rem; text-align: center;">
+              <h4 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Avg Fuel Efficiency</h4>
+              <p id="report-avg-efficiency" style="font-size: 1.5rem; font-weight: 700; color: var(--color-driver);">0.0 km/L</p>
+            </div>
+            <div class="card" style="padding: 1.25rem; text-align: center;">
+              <h4 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Average Vehicle ROI</h4>
+              <p id="report-avg-roi" style="font-size: 1.5rem; font-weight: 700; color: var(--color-safety);">0.0%</p>
+            </div>
+          </div>
+          
           <div class="card">
-            <p>This module requires <strong>Fleet Manager</strong> or <strong>Financial Analyst</strong> permissions.</p>
+            <div class="registry-controls" style="margin-bottom: 1.25rem; align-items: center; justify-content: space-between;">
+              <h3 style="margin: 0;">Vehicle Profitability & ROI Analysis</h3>
+              <div style="display: flex; gap: 0.5rem;">
+                <button id="btn-export-reports-csv" class="btn btn-secondary" onclick="app.exportReportsCSV()">Export CSV</button>
+                <button id="btn-export-reports-pdf" class="btn btn-secondary btn-warning-small" onclick="window.print()">Export PDF / Print</button>
+              </div>
+            </div>
+
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+              * Note: Revenue is calculated dynamically at a rate of <strong>$0.003</strong> per kg-km of completed trip freight. Vehicle ROI is computed as: 
+              <span style="font-family: monospace; background: rgba(0,0,0,0.15); padding: 0.15rem 0.35rem; border-radius: 4px;">[Revenue - (Maintenance + Fuel)] / Acquisition Cost</span>.
+            </p>
+
+            <!-- Table Container -->
+            <div class="table-container">
+              <table class="data-table" id="reports-table">
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Odometer</th>
+                    <th>Distance Run</th>
+                    <th>Fuel Efficiency</th>
+                    <th>Operational Cost</th>
+                    <th>Revenue</th>
+                    <th>Net Profit</th>
+                    <th>ROI (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="reports-table-body">
+                  <!-- Dynamically populated in app.js -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
+
 
       </div>
     </main>
