@@ -688,6 +688,94 @@
         </div>
 
 
+        <!-- EMAIL REMINDER MODAL OVERLAY -->
+        <div id="email-reminder-modal" class="modal-overlay">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h3>Send Compliance Reminder</h3>
+              <button class="btn btn-icon close-modal-btn" onclick="app.closeEmailReminderModal()">&times;</button>
+            </div>
+            <form id="email-reminder-form" onsubmit="event.preventDefault(); app.sendEmailReminder();">
+              <div class="modal-body">
+                <div class="input-group">
+                  <label for="email-to">To (Driver Email)</label>
+                  <input type="email" id="email-to" required>
+                </div>
+                <div class="input-group mt-4">
+                  <label for="email-subject">Subject</label>
+                  <input type="text" id="email-subject" required>
+                </div>
+                <div class="input-group mt-4">
+                  <label for="email-body">Message Body</label>
+                  <textarea id="email-body" required rows="6" style="width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-primary); padding: 0.5rem; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div id="email-reminder-status" class="success-msg mt-4 hidden" style="color: var(--success); font-weight: 600;"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="app.closeEmailReminderModal()">Cancel</button>
+                <button type="button" class="btn btn-secondary btn-warning-small" onclick="app.triggerMailto()">Open Local Mail Client</button>
+                <button type="submit" class="btn btn-primary">Send Simulated Email</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- VEHICLE DOCUMENTS MODAL OVERLAY -->
+        <div id="vehicle-docs-modal" class="modal-overlay">
+          <div class="modal-card" style="max-width: 650px;">
+            <div class="modal-header">
+              <h3 id="vehicle-docs-title">Vehicle Documents</h3>
+              <button class="btn btn-icon close-modal-btn" onclick="app.closeVehicleDocsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <!-- Upload Section -->
+              <h4 style="margin-bottom: 0.5rem; font-size: 0.95rem;">Attach New Document</h4>
+              <form id="vehicle-docs-form" onsubmit="event.preventDefault(); app.uploadVehicleDocument();" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <input type="hidden" id="docs-vehicle-reg" value="">
+                <div style="flex: 1; min-width: 150px;">
+                  <label style="font-size: 0.75rem; color: var(--text-muted);">Choose File</label>
+                  <input type="file" id="docs-file-input" required style="font-size: 0.8rem; padding: 0.25rem;">
+                </div>
+                <div style="width: 150px;">
+                  <label style="font-size: 0.75rem; color: var(--text-muted);">Document Type</label>
+                  <select id="docs-type-input" class="filter-control" style="background-color: var(--input-bg); padding: 0.35rem 0.5rem; font-size: 0.85rem;" required>
+                    <option value="Registration">Registration</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Permit">Emissions Permit</option>
+                    <option value="Other">Other Document</option>
+                  </select>
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                  <button type="submit" class="btn btn-primary btn-small" style="height: 35px;">Upload</button>
+                </div>
+              </form>
+
+              <!-- Document List -->
+              <h4 style="margin-bottom: 0.5rem; font-size: 0.95rem;">Attached Documents</h4>
+              <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Document Name</th>
+                      <th>Type</th>
+                      <th>Upload Date</th>
+                      <th>Size</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="vehicle-docs-table-body">
+                    <!-- Dynamically populated in app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="app.closeVehicleDocsModal()">Close</button>
+            </div>
+          </div>
+        </div>
+
+
         <!-- MAINTENANCE VIEW -->
         <section id="view-maintenance" class="view-section hidden">
           <div class="view-header">

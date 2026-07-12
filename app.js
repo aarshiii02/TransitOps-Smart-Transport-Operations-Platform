@@ -123,6 +123,16 @@ class AppState {
       region: ""
     };
 
+    // Seed vehicle documents metadata if not exist
+    this.vehicles.forEach(v => {
+      if (!v.documents) {
+        v.documents = [
+          { name: `${v.registration}_Registration.pdf`, type: "Registration", date: "2026-01-15", size: "124 KB", dataUrl: "data:application/pdf;base64,JVBERi0xLjQKJ..." },
+          { name: `${v.registration}_Insurance_Policy.pdf`, type: "Insurance", date: "2026-02-10", size: "852 KB", dataUrl: "data:application/pdf;base64,JVBERi0xLjQKJ..." }
+        ];
+      }
+    });
+
     // Save initial defaults if empty
     this.saveToStorage();
   }
@@ -814,6 +824,7 @@ class AppState {
       const actionsHTML = isManager ? `
         <td class="actions-cell">
           <button class="btn btn-secondary btn-small btn-warning-small" onclick="app.openEditVehicleModal('${v.registration}')">Edit</button>
+          <button class="btn btn-secondary btn-small" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.3);" onclick="app.openVehicleDocsModal('${v.registration}')">Docs</button>
           <button class="btn btn-danger btn-small" onclick="app.deleteVehicle('${v.registration}')">Delete</button>
         </td>
       ` : "";
@@ -1049,6 +1060,7 @@ class AppState {
           <td>${safetyHTML}</td>
           <td><span class="badge ${badgeClass}">${d.status}</span></td>
           <td class="actions-cell">
+            ${(new Date(d.expiry) <= next30Days) ? `<button class="btn btn-secondary btn-small" style="background: rgba(251, 191, 36, 0.15); color: var(--color-safety); border-color: rgba(251, 191, 36, 0.3);" onclick="app.openEmailReminderModal('${d.license}')">✉ Remind</button>` : ''}
             <button class="btn btn-secondary btn-small btn-warning-small" onclick="app.openEditDriverModal('${d.license}')">Edit</button>
             <button class="btn btn-danger btn-small" onclick="app.deleteDriver('${d.license}')">Delete</button>
           </td>
@@ -1806,6 +1818,204 @@ class AppState {
     this.saveToStorage();
     this.renderExpenses();
     this.closeExpenseModal();
+  }
+
+  // ==========================================================================
+  // Email Compliance Reminders
+  // ==========================================================================
+  openEmailReminderModal(license) {
+    const driver = this.drivers.find(d => d.license === license);
+    if (!driver) return;
+
+    const emailTo = document.getElementById("email-to");
+    const emailSubject = document.getElementById("email-subject");
+    const emailBody = document.getElementById("email-body");
+    const emailStatus = document.getElementById("email-reminder-status");
+
+    // Standard driver mock email
+    const driverEmail = `${driver.name.toLowerCase().replace(" ", ".")}@transitops.com`;
+    
+    emailTo.value = driverEmail;
+    emailSubject.value = `URGENT: Commercial Driver's License Expiry Warning (${driver.license})`;
+    
+    const today = new Date();
+    const expiryDate = new Date(driver.expiry);
+    let daysMessage = "";
+    if (expiryDate < today) {
+      daysMessage = `expired on ${driver.expiry} and is legally invalid. You are currently Suspended from dispatching active trips.`;
+    } else {
+      const daysDiff = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+      daysMessage = `will expire on ${driver.expiry} (${daysDiff} days remaining). Please initiate the CDL renewal process to avoid suspension.`;
+    }
+
+    emailBody.value = `Dear ${driver.name},
+
+This compliance notification is from the TransitOps Safety & Compliance Department. 
+
+Our records indicate that your Commercial Driver's License (CDL Number: ${driver.license}, Category: ${driver.category}) ${daysMessage}
+
+Please submit your renewed medical card and CDL certification paperwork to the safety coordinator immediately.
+
+Safe driving,
+TransitOps Safety & Compliance Office`;
+
+    emailStatus.classList.add("hidden");
+    document.getElementById("email-reminder-modal").classList.add("active");
+  }
+
+  closeEmailReminderModal() {
+    document.getElementById("email-reminder-modal").classList.remove("active");
+    document.getElementById("email-reminder-form").reset();
+  }
+
+  sendEmailReminder() {
+    const to = document.getElementById("email-to").value;
+    const subject = document.getElementById("email-subject").value;
+    
+    // Simulate sending email
+    const statusDiv = document.getElementById("email-reminder-status");
+    statusDiv.innerText = `Simulated email notification successfully dispatched to ${to}!`;
+    statusDiv.classList.remove("hidden");
+    
+    this.addLog(`Dispatched CDL renewal compliance email reminder to '${to}'.`);
+    
+    setTimeout(() => {
+      this.closeEmailReminderModal();
+    }, 1500);
+  }
+
+  triggerMailto() {
+    const to = document.getElementById("email-to").value;
+    const subject = encodeURIComponent(document.getElementById("email-subject").value);
+    const body = encodeURIComponent(document.getElementById("email-body").value);
+    
+    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+    this.addLog(`Triggered local mailto helper client for '${to}'.`);
+    this.closeEmailReminderModal();
+  }
+
+  // ==========================================================================
+  // Vehicle Document Management
+  // ==========================================================================
+  openVehicleDocsModal(reg) {
+    const vehicle = this.vehicles.find(v => v.registration === reg);
+    if (!vehicle) return;
+
+    document.getElementById("docs-vehicle-reg").value = reg;
+    document.getElementById("vehicle-docs-title").innerText = `Documents for ${reg} (${vehicle.name})`;
+    document.getElementById("docs-file-input").value = "";
+    document.getElementById("docs-type-input").value = "Registration";
+
+    this.renderVehicleDocsList(reg);
+    document.getElementById("vehicle-docs-modal").classList.add("active");
+  }
+
+  closeVehicleDocsModal() {
+    document.getElementById("vehicle-docs-modal").classList.remove("active");
+    document.getElementById("vehicle-docs-form").reset();
+  }
+
+  renderVehicleDocsList(reg) {
+    const vehicle = this.vehicles.find(v => v.registration === reg);
+    const tbody = document.getElementById("vehicle-docs-table-body");
+    if (!tbody || !vehicle) return;
+
+    if (!vehicle.documents || vehicle.documents.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="color: var(--text-muted); padding: 1.5rem;">No documents attached to this vehicle.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = vehicle.documents.map((doc, index) => {
+      return `
+        <tr>
+          <td style="font-weight: 500; font-size: 0.85rem; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${doc.name}">${doc.name}</td>
+          <td><span class="badge ${doc.type === 'Registration' ? 'badge-manager' : doc.type === 'Insurance' ? 'badge-driver' : doc.type === 'Permit' ? 'badge-safety' : 'badge-finance'}">${doc.type}</span></td>
+          <td style="font-size: 0.8rem;">${doc.date}</td>
+          <td style="font-size: 0.8rem; color: var(--text-muted);">${doc.size}</td>
+          <td class="actions-cell">
+            <button class="btn btn-secondary btn-small" onclick="app.viewVehicleDocument('${reg}', ${index})">View</button>
+            <button class="btn btn-danger btn-small" onclick="app.deleteVehicleDocument('${reg}', ${index})">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  uploadVehicleDocument() {
+    const reg = document.getElementById("docs-vehicle-reg").value;
+    const fileInput = document.getElementById("docs-file-input");
+    const type = document.getElementById("docs-type-input").value;
+    
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    const file = fileInput.files[0];
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      const vehicle = this.vehicles.find(v => v.registration === reg);
+      if (vehicle) {
+        if (!vehicle.documents) {
+          vehicle.documents = [];
+        }
+        
+        // Size format
+        let sizeStr = `${Math.round(file.size / 1024)} KB`;
+        if (file.size > 1024 * 1024) {
+          sizeStr = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        const newDoc = {
+          name: file.name,
+          type,
+          date: new Date().toISOString().split("T")[0],
+          size: sizeStr,
+          dataUrl
+        };
+
+        vehicle.documents.push(newDoc);
+        this.saveToStorage();
+        this.renderVehicleDocsList(reg);
+        this.addLog(`Attached document '${file.name}' to vehicle '${reg}'.`);
+        
+        fileInput.value = "";
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  viewVehicleDocument(reg, index) {
+    const vehicle = this.vehicles.find(v => v.registration === reg);
+    if (!vehicle || !vehicle.documents || !vehicle.documents[index]) return;
+
+    const doc = vehicle.documents[index];
+    if (doc.dataUrl) {
+      const newTab = window.open();
+      if (newTab) {
+        newTab.document.write(`<iframe src="${doc.dataUrl}" style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" allowfullscreen></iframe>`);
+        newTab.document.title = doc.name;
+      } else {
+        const link = document.createElement("a");
+        link.href = doc.dataUrl;
+        link.download = doc.name;
+        link.click();
+      }
+      this.addLog(`Viewed document '${doc.name}' for vehicle '${reg}'.`);
+    } else {
+      alert("Document preview not available.");
+    }
+  }
+
+  deleteVehicleDocument(reg, index) {
+    const vehicle = this.vehicles.find(v => v.registration === reg);
+    if (!vehicle || !vehicle.documents || !vehicle.documents[index]) return;
+
+    const docName = vehicle.documents[index].name;
+    if (confirm(`Are you sure you want to detach document '${docName}'?`)) {
+      vehicle.documents.splice(index, 1);
+      this.saveToStorage();
+      this.renderVehicleDocsList(reg);
+      this.addLog(`Detached document '${docName}' from vehicle '${reg}'.`);
+    }
   }
 
   renderReports() {
