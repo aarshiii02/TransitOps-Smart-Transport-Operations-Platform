@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransitOps Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#0b0f19;--card:rgba(17,24,39,.82);--border:rgba(255,255,255,.08);
+--primary:#6366f1;--primary2:#4f46e5;--text:#f3f4f6;--muted:#9ca3af;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+font-family:'Plus Jakarta Sans',sans-serif;
+background:
+radial-gradient(circle at top right,rgba(99,102,241,.18),transparent 45%),
+radial-gradient(circle at bottom left,rgba(6,182,212,.08),transparent 40%),var(--bg);
+display:flex;justify-content:center;align-items:center;
+min-height:100vh;color:var(--text);
+}
+.card{
+width:100%;max-width:430px;
+background:var(--card);
+backdrop-filter:blur(14px);
+border:1px solid var(--border);
+border-radius:18px;
+padding:40px;
+box-shadow:0 20px 40px rgba(0,0,0,.4);
+}
+.topbar{
+height:4px;
+background:linear-gradient(90deg,#6366f1,#06b6d4);
+border-radius:4px;
+margin:-40px -40px 30px;
+}
+.logo{text-align:center;margin-bottom:28px}
+.icon{
+width:60px;height:60px;border-radius:15px;
+background:linear-gradient(135deg,#6366f1,#06b6d4);
+margin:auto auto 18px;
+display:flex;align-items:center;justify-content:center;
+font-size:28px;font-weight:bold;
+}
+h1{
+font-family:'Outfit',sans-serif;
+font-size:34px;font-weight:800;
+}
+p{color:var(--muted);margin-top:8px;font-size:14px}
+label{display:block;margin:18px 0 8px;font-weight:600}
+input{
+width:100%;
+padding:14px;
+border-radius:10px;
+border:1px solid var(--border);
+background:#111827;
+color:white;
+font-size:15px;
+}
+input:focus{
+outline:none;
+border-color:#6366f1;
+}
+button{
+width:100%;
+margin-top:28px;
+padding:14px;
+border:none;
+border-radius:10px;
+background:linear-gradient(135deg,#6366f1,#4f46e5);
+color:white;
+font-size:16px;
+font-weight:700;
+cursor:not-allowed;
+opacity:.7;
+}
+.footer{
+margin-top:20px;
+text-align:center;
+color:var(--muted);
+font-size:14px;
+}
+.footer span{color:#818cf8;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="card">
+<div class="topbar"></div>
+
+<div class="logo">
+<div class="icon">🚚</div>
+<h1>TransitOps</h1>
+<p>Smart Transport Operations Platform</p>
+</div>
+
+<form>
+<label>Email Address</label>
+<input type="email" placeholder="manager@transitops.com">
+
+<label>Password</label>
+<input type="password" placeholder="••••••••">
+
+<button disabled>Sign In</button>
+</form>
+
+<div class="footer">
+Need an account? <span>Sign Up</span>
+</div>
+
+</div>
+
+</body>
+</html>
