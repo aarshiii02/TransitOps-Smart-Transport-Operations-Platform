@@ -346,6 +346,8 @@ class AppState {
       this.renderDrivers();
     } else if (window.location.hash.replace("#", "") === "trips") {
       this.renderTrips();
+    } else if (window.location.hash.replace("#", "") === "maintenance") {
+      this.renderMaintenance();
     }
   }
 
@@ -404,6 +406,8 @@ class AppState {
         this.renderDrivers();
       } else if (tabId === "trips") {
         this.renderTrips();
+      } else if (tabId === "maintenance") {
+        this.renderMaintenance();
       }
 
       this.addLog(`Switched view to '${this.capitalizeFirstLetter(tabId)}'.`);
@@ -1460,6 +1464,167 @@ class AppState {
     this.renderTrips();
     this.closeTripCompleteModal();
   }
+
+  renderMaintenance() {
+    const searchVal = document.getElementById("maintenance-search").value.toLowerCase().trim();
+    const filterStatus = document.getElementById("maintenance-filter-status").value;
+
+    let filtered = this.maintenance.filter(m => {
+      const matchesSearch = m.vehicle.toLowerCase().includes(searchVal) || 
+                            m.description.toLowerCase().includes(searchVal) ||
+                            m.id.toLowerCase().includes(searchVal);
+      const matchesStatus = !filterStatus || m.status === filterStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+
+    const tbody = document.getElementById("maintenance-table-body");
+    if (!tbody) return;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color: var(--text-muted); padding: 2rem;">No maintenance logs found matching filters.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(m => {
+      let badgeClass = "badge-safety"; // Scheduled (amber)
+      if (m.status === "In Progress") badgeClass = "badge-manager"; // Blue
+      else if (m.status === "Completed") badgeClass = "badge-driver"; // Green
+
+      let actionsHTML = "";
+      if (m.status === "Scheduled") {
+        actionsHTML = `
+          <button class="btn btn-secondary btn-small" onclick="app.setMaintenanceStatus('${m.id}', 'In Progress')">Start Work</button>
+          <button class="btn btn-secondary btn-small btn-warning-small" onclick="app.setMaintenanceStatus('${m.id}', 'Completed')">Complete</button>
+        `;
+      } else if (m.status === "In Progress") {
+        actionsHTML = `
+          <button class="btn btn-secondary btn-small btn-warning-small" onclick="app.setMaintenanceStatus('${m.id}', 'Completed')">Complete</button>
+        `;
+      } else {
+        actionsHTML = `<span style="font-size: 0.75rem; color: var(--text-muted);">Completed</span>`;
+      }
+
+      return `
+        <tr>
+          <td style="font-weight: 600; font-family: monospace;">${m.id}</td>
+          <td style="font-family: monospace; font-weight: 600;">${m.vehicle}</td>
+          <td>${m.description}</td>
+          <td>${m.date}</td>
+          <td>$${m.cost.toLocaleString()}</td>
+          <td><span class="badge ${badgeClass}">${m.status}</span></td>
+          <td class="actions-cell">${actionsHTML}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  openCreateMaintenanceModal() {
+    // Populate Vehicles dropdown (exclude Retired)
+    const vehicleSelect = document.getElementById("maintenance-vehicle");
+    const activeVehicles = this.vehicles.filter(v => v.status !== "Retired");
+
+    if (activeVehicles.length === 0) {
+      vehicleSelect.innerHTML = `<option value="">No vehicles found</option>`;
+    } else {
+      vehicleSelect.innerHTML = activeVehicles.map(v => 
+        `<option value="${v.registration}">${v.registration} - ${v.name} (Status: ${v.status})</option>`
+      ).join('');
+    }
+
+    // Reset fields
+    document.getElementById("maintenance-date").value = "";
+    document.getElementById("maintenance-cost").value = "";
+    document.getElementById("maintenance-status").value = "Scheduled";
+    document.getElementById("maintenance-desc").value = "";
+
+    document.getElementById("maintenance-form-error").classList.add("hidden");
+    document.getElementById("maintenance-modal").classList.add("active");
+  }
+
+  closeMaintenanceModal() {
+    document.getElementById("maintenance-modal").classList.remove("active");
+    document.getElementById("maintenance-form").reset();
+  }
+
+  handleMaintenanceFormSubmit() {
+    const vehicleReg = document.getElementById("maintenance-vehicle").value;
+    const date = document.getElementById("maintenance-date").value;
+    const cost = parseInt(document.getElementById("maintenance-cost").value);
+    const status = document.getElementById("maintenance-status").value;
+    const description = document.getElementById("maintenance-desc").value.trim();
+
+    const errorDiv = document.getElementById("maintenance-form-error");
+
+    if (!vehicleReg || !date || isNaN(cost) || !status || !description) {
+      errorDiv.innerText = "All fields are required.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    // Fetch vehicle and validate statuses
+    const vehicle = this.vehicles.find(v => v.registration === vehicleReg);
+    if (!vehicle) {
+      errorDiv.innerText = "Vehicle not found.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    if (vehicle.status === "On Trip") {
+      errorDiv.innerText = "Vehicle is currently on an active trip and cannot undergo maintenance.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    // Generate new work order ID
+    const woId = `MNT-${100 + this.maintenance.length + 1}`;
+
+    const newRecord = {
+      id: woId,
+      vehicle: vehicleReg,
+      description,
+      cost,
+      date,
+      status
+    };
+
+    this.maintenance.push(newRecord);
+
+    // Business Rule: Switches vehicle status to "In Shop"
+    vehicle.status = "In Shop";
+
+    this.addLog(`Logged maintenance work order: '${woId}' for vehicle '${vehicleReg}' and placed vehicle In Shop.`);
+    this.saveToStorage();
+    this.renderMaintenance();
+    this.closeMaintenanceModal();
+  }
+
+  setMaintenanceStatus(id, newStatus) {
+    const record = this.maintenance.find(m => m.id === id);
+    if (!record) return;
+
+    record.status = newStatus;
+
+    // Business Rule: Releasing vehicle if Completed
+    if (newStatus === "Completed") {
+      const vehicle = this.vehicles.find(v => v.registration === record.vehicle);
+      if (vehicle) {
+        // Check if this vehicle has other active (Scheduled or In Progress) maintenance work orders
+        const hasOtherActive = this.maintenance.some(m => m.vehicle === record.vehicle && m.id !== id && m.status !== "Completed");
+        if (!hasOtherActive) {
+          vehicle.status = "Available";
+          this.addLog(`Maintenance '${id}' completed. Vehicle '${record.vehicle}' is now Available.`);
+        } else {
+          this.addLog(`Maintenance '${id}' completed. Vehicle '${record.vehicle}' remains In Shop due to other active work orders.`);
+        }
+      }
+    } else {
+      this.addLog(`Work order '${id}' status updated to '${newStatus}'.`);
+    }
+
+    this.saveToStorage();
+    this.renderMaintenance();
+  }
 }
 
 // Instantiate state globally
@@ -1592,6 +1757,25 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     app.handleTripCompleteSubmit();
   });
+
+  // Maintenance Management bindings
+  const maintenanceSearch = document.getElementById("maintenance-search");
+  if (maintenanceSearch) {
+    maintenanceSearch.addEventListener("input", () => app.renderMaintenance());
+  }
+
+  const mntFilterStatus = document.getElementById("maintenance-filter-status");
+  if (mntFilterStatus) {
+    mntFilterStatus.addEventListener("change", () => app.renderMaintenance());
+  }
+
+  const maintenanceForm = document.getElementById("maintenance-form");
+  if (maintenanceForm) {
+    maintenanceForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      app.handleMaintenanceFormSubmit();
+    });
+  }
 
   // Bind global routing to hashchange
   window.addEventListener("hashchange", () => {

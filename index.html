@@ -692,12 +692,95 @@
         <section id="view-maintenance" class="view-section hidden">
           <div class="view-header">
             <h2>Maintenance Log</h2>
-            <p>Log work orders and track vehicles in shop.</p>
+            <p>Log work orders, schedule repairs, and monitor vehicles in shop.</p>
           </div>
+          
           <div class="card">
-            <p>This module requires <strong>Fleet Manager</strong> permissions.</p>
+            <!-- Maintenance Controls Header -->
+            <div class="registry-controls">
+              <div class="search-filter-bar">
+                <div class="search-input-wrapper">
+                  <svg class="search-icon-svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                  <input type="text" id="maintenance-search" class="search-control" placeholder="Search by vehicle reg or issue...">
+                </div>
+                <select id="maintenance-filter-status" class="registry-select">
+                  <option value="">All Statuses</option>
+                  <option value="Scheduled">Scheduled</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+              <button id="btn-add-maintenance" class="btn btn-primary" onclick="app.openCreateMaintenanceModal()">Log Maintenance</button>
+            </div>
+
+            <!-- Table Container -->
+            <div class="table-container">
+              <table class="data-table" id="maintenance-table">
+                <thead>
+                  <tr>
+                    <th>Work Order #</th>
+                    <th>Vehicle Reg</th>
+                    <th>Description / Issue</th>
+                    <th>Scheduled Date</th>
+                    <th>Estimated Cost</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="maintenance-table-body">
+                  <!-- Dynamically populated in app.js -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
+
+        <!-- LOG MAINTENANCE MODAL OVERLAY -->
+        <div id="maintenance-modal" class="modal-overlay">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h3>Log Maintenance Work Order</h3>
+              <button class="btn btn-icon close-modal-btn" onclick="app.closeMaintenanceModal()">&times;</button>
+            </div>
+            <form id="maintenance-form">
+              <div class="modal-body">
+                <div class="form-grid-2">
+                  <div class="input-group">
+                    <label for="maintenance-vehicle">Select Vehicle</label>
+                    <select id="maintenance-vehicle" class="filter-control" style="background-color: var(--input-bg);" required>
+                      <!-- Dynamically loaded vehicles (excluding Retired) -->
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label for="maintenance-date">Scheduled Date</label>
+                    <input type="date" id="maintenance-date" required>
+                  </div>
+                  <div class="input-group">
+                    <label for="maintenance-cost">Estimated Cost ($)</label>
+                    <input type="number" id="maintenance-cost" required min="0" placeholder="e.g. 350">
+                  </div>
+                  <div class="input-group">
+                    <label for="maintenance-status">Initial Status</label>
+                    <select id="maintenance-status" class="filter-control" style="background-color: var(--input-bg);" required>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="In Progress">In Progress</option>
+                    </select>
+                  </div>
+                  <div class="input-group form-group-full">
+                    <label for="maintenance-desc">Description of Work / Issue</label>
+                    <textarea id="maintenance-desc" required placeholder="Describe the mechanical issue, oil change, tire replacement, etc." rows="3" style="width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-primary); padding: 0.5rem; font-family: inherit; resize: vertical;"></textarea>
+                  </div>
+                </div>
+                <div id="maintenance-form-error" class="error-msg mt-4 hidden"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="app.closeMaintenanceModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Work Order</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
 
         <!-- EXPENSES VIEW -->
         <section id="view-expenses" class="view-section hidden">
