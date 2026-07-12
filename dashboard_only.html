@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitOps Dashboard - Phase 1 Mockup</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+        /* Color Tokens & Variables */
+        :root {
+            --font-primary: 'Plus Jakarta Sans', sans-serif;
+            --font-heading: 'Outfit', sans-serif;
+            
+            --transition-fast: 0.2s ease;
+            --transition-normal: 0.3s ease;
+            
+            --sidebar-width: 260px;
+            --header-height: 70px;
+            --border-radius-md: 12px;
+            --border-radius-lg: 20px;
+            
+            /* Dark Theme Colors */
+            --bg-primary: #090d16;
+            --bg-secondary: #111827;
+            --bg-sidebar: #0b0f19;
+            --bg-sidebar-hover: rgba(255, 255, 255, 0.05);
+            --border-color: #1f2937;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-on-dark: #f3f4f6;
+            
+            --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(17, 24, 39, 0.7);
+            --glass-border: rgba(31, 41, 55, 0.6);
+            
+            /* Brand Colors */
+            --color-primary: #818cf8; /* Indigo */
+            --color-primary-light: rgba(129, 140, 248, 0.15);
+            --color-secondary: #0ea5e9; /* Sky Blue */
+            
+            /* Status Colors */
+            --status-available-bg: rgba(21, 128, 61, 0.2);
+            --status-available-text: #86efac;
+            --status-ontrip-bg: rgba(29, 78, 216, 0.2);
+            --status-ontrip-text: #93c5fd;
+            --status-inshop-bg: rgba(194, 65, 12, 0.2);
+            --status-inshop-text: #fdba74;
+            --status-retired-bg: rgba(75, 85, 99, 0.2);
+            --status-retired-text: #d1d5db;
+        }
+
+        /* Reset & Reset Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar navigation layout */
+        aside {
+            width: var(--sidebar-width);
+            background-color: var(--bg-sidebar);
+            color: var(--text-on-dark);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .sidebar-brand {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            border-radius: var(--border-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-family: var(--font-heading);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .brand-name {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #ffffff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-grow: 1;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: var(--border-radius-md);
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .sidebar-link.active {
+            color: #ffffff;
+            background-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+
+        .sidebar-link:hover:not(.active) {
+            color: #ffffff;
+            background-color: var(--bg-sidebar-hover);
+        }
+
+        .sidebar-link svg {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.8rem;
+            color: #4b5563;
+            text-align: center;
+        }
+
+        /* Main Area Layout */
+        main {
+            margin-left: var(--sidebar-width);
+            flex-grow: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            height: var(--header-height);
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+
+        h1 {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .role-picker {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: var(--border-radius-md);
+            font-size: 0.85rem;
+        }
+
+        .role-label {
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .role-value {
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .header-btn {
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .header-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        /* Content Container styling */
+        .content-body {
+            padding: 32px;
+            flex-grow: 1;
+        }
+
+        /* KPI Cards Grid styling */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .kpi-card {
+            background-color: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-lg);
+            padding: 24px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform var(--transition-fast);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .kpi-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--border-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kpi-icon.blue { background-color: rgba(14, 165, 233, 0.15); color: #0ea5e9; }
+        .kpi-icon.green { background-color: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .kpi-icon.orange { background-color: rgba(249, 115, 22, 0.15); color: #f97316; }
+        .kpi-icon.violet { background-color: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+
+        .kpi-icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .kpi-value {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Filter bar layout */
+        .filter-bar {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 16px 24px;
+            border-radius: var(--border-radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .filter-title {
+            font-weight: 600;
+            font-size: 1.05rem;
+            font-family: var(--font-heading);
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 16px;
+        }
+
+        .select-input {
+            padding: 8px 16px;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-weight: 500;
+            outline: none;
+            font-family: var(--font-primary);
+            font-size: 0.85rem;
+        }
+
+        /* Charts mockup layout */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 24px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .chart-header {
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Pure CSS / SVG Chart Mockups */
+        .svg-chart-container {
+            width: 100%;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Table Card styling */
+        .table-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        .table-title {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            font-family: var(--font-heading);
+            font-size: 1.05rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: var(--bg-primary);
+            padding: 16px 24px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-available { background-color: var(--status-available-bg); color: var(--status-available-text); }
+        .badge-ontrip { background-color: var(--status-ontrip-bg); color: var(--status-ontrip-text); }
+        .badge-inshop { background-color: var(--status-inshop-bg); color: var(--status-inshop-text); }
+
+        .progress-bar-container {
+            background-color: var(--border-color);
+            height: 8px;
+            border-radius: 4px;
+            width: 120px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            background-color: var(--color-primary);
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        /* Responsive Mobile tweaks */
+        @media (max-width: 768px) {
+            aside {
+                display: none;
+            }
+            main {
+                margin-left: 0;
+            }
+            header {
+                padding: 0 16px;
+            }
+            .content-body {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Static Sidebar Mockup -->
+    <aside>
+        <div class="sidebar-brand">
+            <div class="sidebar-logo">TO</div>
+            <span class="brand-name">TransitOps</span>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li>
+                <a class="sidebar-link active">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a class="sidebar-link">
+                    <svg viewBox="0 0 24 24"><rect x="1" y="3" width="22" height="13" rx="2" ry="2"/><path d="M7 21h0a2 2 0 0 1-2-2v-3h14v3a2 2 0 0 1-2 2h0"/></svg>
+                    <span>Vehicles</span>
+                </a>
+            </li>
+            <li>
+                <a class="sidebar-link">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    <span>Drivers</span>
+                </a>
+            </li>
+            <li>
+                <a class="sidebar-link">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>Trip Management</span>
+                </a>
+            </li>
+            <li>
+                <a class="sidebar-link">
+                    <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    <span>Maintenance</span>
+                </a>
+            </li>
+            <li>
+                <a class="sidebar-link">
+                    <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    <span>Expenses</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <span>TransitOps Phase 1</span>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main>
+        <!-- Header -->
+        <header>
+            <h1>Dashboard</h1>
+            <div class="header-controls">
+                <div class="role-picker">
+                    <span class="role-label">Active View Role:</span>
+                    <span class="role-value">Fleet Manager</span>
+                </div>
+                <button class="header-btn">
+                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </button>
+                <button class="header-btn">
+                    <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Body Content -->
+        <div class="content-body">
+            
+            <!-- KPI Cards Row -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Active Vehicles</span>
+                        <div class="kpi-icon blue"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="22" height="13" rx="2" ry="2"/><path d="M7 21h0a2 2 0 0 1-2-2v-3h14v3a2 2 0 0 1-2 2h0"/></svg></div>
+                    </div>
+                    <span class="kpi-value">2</span>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Available Vehicles</span>
+                        <div class="kpi-icon green"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+                    </div>
+                    <span class="kpi-value">5</span>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">In Maintenance</span>
+                        <div class="kpi-icon orange"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+                    </div>
+                    <span class="kpi-value">1</span>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Fleet Utilization</span>
+                        <div class="kpi-icon violet"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><line x1="2" y1="12" x2="22" y2="12"/></svg></div>
+                    </div>
+                    <span class="kpi-value">28.5%</span>
+                </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="filter-bar">
+                <span class="filter-title">Live Dispatch Feeds</span>
+                <div class="filter-controls">
+                    <select class="select-input">
+                        <option>All Vehicle Types</option>
+                        <option>Van</option>
+                        <option>Truck</option>
+                        <option>Semi</option>
+                    </select>
+                    <select class="select-input">
+                        <option>All Regions</option>
+                        <option>North</option>
+                        <option>South</option>
+                        <option>East</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Visual Charts Mockups (Pure SVG/CSS) -->
+            <div class="charts-row">
+                <!-- Expenses vs Revenue Mockup Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Expenses vs Revenue Trend (Q3)</span>
+                    </div>
+                    <div class="svg-chart-container">
+                        <svg width="100%" height="240" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Grid lines -->
+                            <line x1="40" y1="20" x2="380" y2="20" stroke="#1f2937" stroke-width="1" stroke-dasharray="4"/>
+                            <line x1="40" y1="70" x2="380" y2="70" stroke="#1f2937" stroke-width="1" stroke-dasharray="4"/>
+                            <line x1="40" y1="120" x2="380" y2="120" stroke="#1f2937" stroke-width="1" stroke-dasharray="4"/>
+                            <line x1="40" y1="170" x2="380" y2="170" stroke="#374151" stroke-width="1.5"/>
+                            
+                            <!-- Left Y-Axis labels -->
+                            <text x="30" y="24" fill="#9ca3af" font-family="Plus Jakarta Sans" font-size="10" text-anchor="end">$4,000</text>
+                            <text x="30" y="74" fill="#9ca3af" font-family="Plus Jakarta Sans" font-size="10" text-anchor="end">$2,000</text>
+                            <text x="30" y="124" fill="#9ca3af" font-family="Plus Jakarta Sans" font-size="10" text-anchor="end">$1,000</text>
+                            <text x="30" y="174" fill="#9ca3af" font-family="Plus Jakarta Sans" font-size="10" text-anchor="end">$0</text>
+                            
+                            <!-- Bars: May -->
+                            <!-- Revenue -->
+                            <rect x="80" y="80" width="22" height="90" rx="3" fill="#818cf8"/>
+                            <!-- Expenses -->
+                            <rect x="105" y="120" width="22" height="50" rx="3" fill="#f43f5e"/>
+                            <text x="103" y="186" fill="#9ca3af" font-family="Plus Jakarta Sans" font-size="11" text-anchor="middle">May</text>
+                            
+                            <!-- Bars: June -->
+                            <!-- Revenue -->
+                            <rect x="180" y="50" width="22" height="120" rx="3" fill="#818cf8"/>
+                            <!-- Expenses -->
+                            <rect x="205" y="100" width="22" height="70" rx="3" fill="#f43f5e"/>
+                            <text x="203" y="186" fill="#9ca3af" font-family="Plus Jakarta Sans" font-size="11" text-anchor="middle">June</text>
+                            
+                            <!-- Bars: July -->
+                            <!-- Revenue -->
+                            <rect x="280" y="100" width="22" height="70" rx="3" fill="#818cf8"/>
+                            <!-- Expenses -->
+                            <rect x="305" y="130" width="22" height="40" rx="3" fill="#f43f5e"/>
+                            <text x="303" y="186" fill="#9ca3af" font-family="Plus Jakarta Sans" font-size="11" text-anchor="middle">July</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Status Doughnut Mockup Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Fleet Allocation</span>
+                    </div>
+                    <div class="svg-chart-container">
+                        <svg width="180" height="180" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Background Circle -->
+                            <circle cx="18" cy="18" r="15.91" fill="transparent" stroke="#1f2937" stroke-width="3"/>
+                            
+                            <!-- Available segment (Green) - 60% -->
+                            <circle cx="18" cy="18" r="15.91" fill="transparent" stroke="#22c55e" stroke-width="4.2" 
+                                    stroke-dasharray="60 40" stroke-dashoffset="25"/>
+                            
+                            <!-- On Trip segment (Blue) - 25% -->
+                            <circle cx="18" cy="18" r="15.91" fill="transparent" stroke="#0ea5e9" stroke-width="4.2" 
+                                    stroke-dasharray="25 75" stroke-dashoffset="-35"/>
+                                    
+                            <!-- In Shop segment (Orange) - 15% -->
+                            <circle cx="18" cy="18" r="15.91" fill="transparent" stroke="#f97316" stroke-width="4.2" 
+                                    stroke-dasharray="15 85" stroke-dashoffset="-60"/>
+                            
+                            <!-- Text in center -->
+                            <text x="18" y="17" fill="#ffffff" font-family="Outfit" font-size="6" font-weight="700" text-anchor="middle">8</text>
+                            <text x="18" y="22" fill="#9ca3af" font-family="Plus Jakarta Sans" font-size="3" text-anchor="middle">Vehicles</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Static Table Mockup -->
+            <div class="table-card">
+                <div class="table-title">Active Fleet Deployments</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Trip ID</th>
+                            <th>Route</th>
+                            <th>Vehicle</th>
+                            <th>Driver</th>
+                            <th>Cargo (kg)</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>TRIP-1002</strong></td>
+                            <td>Warehouse C, Houston ➔ Distribution Center D</td>
+                            <td>Truck-02 (Isuzu NPR Gas 2021)</td>
+                            <td>Sarah Connor</td>
+                            <td>2,500 kg</td>
+                            <td>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill" style="width: 60%;"></div>
+                                </div>
+                            </td>
+                            <td><span class="badge badge-ontrip">On Trip</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>TRIP-1001</strong></td>
+                            <td>Warehouse A, Austin ➔ Retail Center B</td>
+                            <td>Flatbed-04 (Silverado 3500 HD)</td>
+                            <td>Alex Johnson</td>
+                            <td>5,000 kg</td>
+                            <td>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill" style="width: 0%;"></div>
+                                </div>
+                            </td>
+                            <td><span class="badge badge-available">Draft</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </main>
+
+</body>
+</html>
