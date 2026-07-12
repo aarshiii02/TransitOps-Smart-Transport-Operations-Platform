@@ -62,27 +62,80 @@ const PREDEFINED_USERS = {
 };
 
 // ==========================================================================
+// Default Database Seed Data (Mock Database)
+// ==========================================================================
+const DEFAULT_VEHICLES = [
+  { registration: "VAN-01", name: "Ford Transit 350", type: "Van", capacity: 1200, odometer: 45000, cost: 32000, status: "Available", region: "North" },
+  { registration: "VAN-02", name: "Mercedes Sprinter", type: "Van", capacity: 1500, odometer: 12000, cost: 45000, status: "On Trip", region: "South" },
+  { registration: "TRK-03", name: "Volvo FH16", type: "Heavy Truck", capacity: 18000, odometer: 185000, cost: 110000, status: "Available", region: "East" },
+  { registration: "TRK-04", name: "Scania R500", type: "Heavy Truck", capacity: 20000, odometer: 210000, cost: 125000, status: "In Shop", region: "Central" },
+  { registration: "MDK-05", name: "Isuzu NPR", type: "Medium Truck", capacity: 5500, odometer: 85000, cost: 55000, status: "Available", region: "West" },
+  { registration: "VAN-05", name: "Nissan NV2500", type: "Van", capacity: 500, odometer: 3200, cost: 28000, status: "Available", region: "North" },
+  { registration: "LTK-06", name: "Toyota Hilux", type: "Light Truck", capacity: 1000, odometer: 95000, cost: 35000, status: "Retired", region: "South" }
+];
+
+const DEFAULT_DRIVERS = [
+  { name: "Alex Johnson", license: "DL-98234", category: "Class A CDL", expiry: "2028-11-20", phone: "555-0199", safetyScore: 92, status: "Available" },
+  { name: "Bob Miller", license: "DL-45612", category: "Class A CDL", expiry: "2027-04-15", phone: "555-0143", safetyScore: 88, status: "On Trip" },
+  { name: "Charlie Smith", license: "DL-78901", category: "Class B CDL", expiry: "2026-09-10", phone: "555-0156", safetyScore: 95, status: "Available" },
+  { name: "David Davis", license: "DL-34567", category: "Class C", expiry: "2025-12-05", phone: "555-0121", safetyScore: 78, status: "Suspended" },
+  { name: "Emma Wilson", license: "DL-67890", category: "Class A CDL", expiry: "2026-03-22", phone: "555-0177", safetyScore: 90, status: "Available" }
+];
+
+const DEFAULT_TRIPS = [
+  { id: "TRP-101", source: "Chicago Warehouse", destination: "Detroit Depot", vehicle: "VAN-02", driver: "Bob Miller", weight: 950, distance: 280, status: "Dispatched" },
+  { id: "TRP-102", source: "Dallas Terminal", destination: "Houston Hub", vehicle: "VAN-01", driver: "Alex Johnson", weight: 1100, distance: 240, status: "Completed", finalOdometer: 45240, fuelConsumed: 32 },
+  { id: "TRP-103", source: "Seattle Port", destination: "Portland Office", vehicle: "MDK-05", driver: "Emma Wilson", weight: 3500, distance: 175, status: "Draft" }
+];
+
+const DEFAULT_MAINTENANCE = [
+  { id: "MNT-201", vehicle: "TRK-04", description: "Engine Oil & Filter Change", date: "2026-07-10", cost: 350, status: "Active" },
+  { id: "MNT-202", vehicle: "VAN-01", description: "Brake Pad Replacement", date: "2026-06-15", cost: 480, status: "Closed" }
+];
+
+const DEFAULT_EXPENSES = [
+  { id: "EXP-301", vehicle: "VAN-01", type: "Fuel", liters: 45, cost: 72, date: "2026-07-08", description: "Refuel at Shell" },
+  { id: "EXP-302", vehicle: "VAN-01", type: "Toll", cost: 15, date: "2026-07-09", description: "I-90 Toll road" },
+  { id: "EXP-303", vehicle: "VAN-02", type: "Fuel", liters: 32, cost: 54, date: "2026-07-11", description: "Refuel during TRP-101" }
+];
+
+// ==========================================================================
 // Application State
 // ==========================================================================
 class AppState {
   constructor() {
     this.currentUser = null;
-    this.simulatedRole = null;
+    this.simulatedRole = null; // Used when the user selects a role to test from the top bar
     this.theme = localStorage.getItem("transitops_theme") || "dark";
     this.logs = JSON.parse(localStorage.getItem("transitops_logs")) || [];
-    
-    // Database Storage Arrays
-    this.vehicles = [];
-    this.drivers = [];
-    this.trips = [];
-    this.maintenance = [];
-    this.expenses = [];
+
+    // Core Entities (Load from local storage or set defaults)
+    this.vehicles = JSON.parse(localStorage.getItem("transitops_vehicles")) || DEFAULT_VEHICLES;
+    this.drivers = JSON.parse(localStorage.getItem("transitops_drivers")) || DEFAULT_DRIVERS;
+    this.trips = JSON.parse(localStorage.getItem("transitops_trips")) || DEFAULT_TRIPS;
+    this.maintenance = JSON.parse(localStorage.getItem("transitops_maintenance")) || DEFAULT_MAINTENANCE;
+    this.expenses = JSON.parse(localStorage.getItem("transitops_expenses")) || DEFAULT_EXPENSES;
+
+    // Filters state
+    this.filters = {
+      type: "",
+      status: "",
+      region: ""
+    };
+
+    // Save initial defaults if empty
+    this.saveToStorage();
+  }
+
+  saveToStorage() {
+    localStorage.setItem("transitops_vehicles", JSON.stringify(this.vehicles));
+    localStorage.setItem("transitops_drivers", JSON.stringify(this.drivers));
+    localStorage.setItem("transitops_trips", JSON.stringify(this.trips));
+    localStorage.setItem("transitops_maintenance", JSON.stringify(this.maintenance));
+    localStorage.setItem("transitops_expenses", JSON.stringify(this.expenses));
   }
 
   init() {
-    // Load local storage fleet data
-    this.loadDatabase();
-
     // Setup Theme
     document.documentElement.setAttribute("data-theme", this.theme);
     this.updateThemeUI();
@@ -142,308 +195,6 @@ class AppState {
     } else {
       // Fallback for invalid hashes
       window.location.hash = "dashboard";
-    }
-  }
-
-  loadDatabase() {
-    const savedData = localStorage.getItem("transitops_database");
-    if (savedData) {
-      const db = JSON.parse(savedData);
-      this.vehicles = db.vehicles || [];
-      this.drivers = db.drivers || [];
-      this.trips = db.trips || [];
-      this.maintenance = db.maintenance || [];
-      this.expenses = db.expenses || [];
-    } else {
-      // Predefined default mock data according to specs
-      this.vehicles = [
-        { registration: "VAN-01", name: "Ford Transit Cargo", type: "Van", capacity: 600, odometer: 12500, cost: 25000, status: "Available", region: "North" },
-        { registration: "TRK-02", name: "Volvo FH16 Hauler", type: "Heavy Truck", capacity: 5000, odometer: 45000, cost: 65000, status: "On Trip", region: "South" },
-        { registration: "SEM-03", name: "Scania R-Series Semi", type: "Semi-Trailer", capacity: 15000, odometer: 120000, cost: 95000, status: "In Shop", region: "East" },
-        { registration: "VAN-04", name: "Mercedes Sprinter", type: "Van", capacity: 500, odometer: 8200, cost: 22000, status: "Available", region: "West" },
-        { registration: "TRK-05", name: "Isuzu Elf Delivery", type: "Light Truck", capacity: 2500, odometer: 18400, cost: 38000, status: "Available", region: "North" },
-        { registration: "SED-06", name: "Toyota Prius Utility", type: "Sedan", capacity: 300, odometer: 4000, cost: 18000, status: "Available", region: "South" },
-        { registration: "TRK-07", name: "Peterbilt 389 Rig", type: "Heavy Truck", capacity: 6000, odometer: 350000, cost: 55000, status: "Retired", region: "East" },
-        { registration: "SEM-08", name: "Freightliner Cascadia", type: "Semi-Trailer", capacity: 18000, odometer: 75000, cost: 110000, status: "Available", region: "West" }
-      ];
-
-      this.drivers = [
-        { name: "Alex Mercer", license: "DL-8827", category: "Class A", expiry: "2028-12-15", contact: "555-0192", safetyScore: 92, status: "Available" },
-        { name: "Marcus Vance", license: "DL-1928", category: "Class B", expiry: "2027-06-20", contact: "555-0144", safetyScore: 88, status: "On Trip" },
-        { name: "Sarah Jenkins", license: "DL-3746", category: "Class A", expiry: "2029-01-10", contact: "555-0123", safetyScore: 95, status: "Off Duty" },
-        { name: "John Doe", license: "DL-9921", category: "Class C", expiry: "2026-11-05", contact: "555-0188", safetyScore: 45, status: "Suspended" },
-        { name: "Jane Smith", license: "DL-4472", category: "Class A", expiry: "2022-05-15", contact: "555-0112", safetyScore: 99, status: "Available" },
-        { name: "Bob Johnson", license: "DL-7729", category: "Class B", expiry: "2027-10-18", contact: "555-0177", safetyScore: 82, status: "Available" }
-      ];
-
-      this.trips = [
-        { id: "T-101", source: "Warehouse A", destination: "Retail Store 5", vehicleReg: "TRK-02", driverName: "Marcus Vance", cargoWeight: 4200, distance: 150, status: "Dispatched", date: "2026-07-11" },
-        { id: "T-102", source: "Port Hub", destination: "Distribution Center", vehicleReg: "SEM-08", driverName: "Alex Mercer", cargoWeight: 12000, distance: 320, status: "Draft", date: "2026-07-12" },
-        { id: "T-103", source: "Logistics Depot", destination: "Customer Site B", vehicleReg: "VAN-01", driverName: "Bob Johnson", cargoWeight: 450, distance: 60, status: "Completed", date: "2026-06-25", finalOdometer: 12560, fuelConsumed: 15, revenue: 1200 },
-        { id: "T-104", source: "Warehouse B", destination: "Retail Store 2", vehicleReg: "SED-06", driverName: "Bob Johnson", cargoWeight: 150, distance: 25, status: "Completed", date: "2026-07-02", finalOdometer: 4025, fuelConsumed: 3, revenue: 350 }
-      ];
-
-      this.maintenance = [
-        { id: "M-301", vehicleReg: "SEM-03", description: "Transmission Overhaul", date: "2026-07-10", cost: 2800, status: "Active" },
-        { id: "M-302", vehicleReg: "VAN-01", description: "Oil Change & Brake Inspection", date: "2026-06-25", cost: 250, status: "Closed" }
-      ];
-
-      this.expenses = [
-        { id: "E-401", vehicleReg: "VAN-01", type: "Fuel", amount: 30, date: "2026-06-25", description: "15L fuel log - Trip T-103" },
-        { id: "E-402", vehicleReg: "TRK-02", type: "Fuel", amount: 60, date: "2026-07-01", description: "30L fuel log" },
-        { id: "E-403", vehicleReg: "SED-06", type: "Fuel", amount: 6, date: "2026-07-02", description: "3L fuel log - Trip T-104" },
-        { id: "E-404", vehicleReg: "SEM-03", type: "Maintenance", amount: 2800, date: "2026-07-10", description: "Transmission Overhaul" },
-        { id: "E-405", vehicleReg: "VAN-01", type: "Maintenance", amount: 250, date: "2026-06-25", description: "Oil Change & Brake Inspection" },
-        { id: "E-406", vehicleReg: "TRK-02", type: "Toll", amount: 45, date: "2026-07-02", description: "Highway Tolls" }
-      ];
-
-      this.saveDatabase();
-    }
-  }
-
-  saveDatabase() {
-    const db = {
-      vehicles: this.vehicles,
-      drivers: this.drivers,
-      trips: this.trips,
-      maintenance: this.maintenance,
-      expenses: this.expenses
-    };
-    localStorage.setItem("transitops_database", JSON.stringify(db));
-  }
-
-  renderDashboard() {
-    const typeFilter = document.getElementById("filter-type").value;
-    const statusFilter = document.getElementById("filter-status").value;
-    const regionFilter = document.getElementById("filter-region").value;
-
-    // Filter Vehicles
-    let filteredVehicles = this.vehicles;
-    if (typeFilter !== "All") {
-      filteredVehicles = filteredVehicles.filter(v => v.type === typeFilter);
-    }
-    if (statusFilter !== "All") {
-      filteredVehicles = filteredVehicles.filter(v => v.status === statusFilter);
-    }
-    if (regionFilter !== "All") {
-      filteredVehicles = filteredVehicles.filter(v => v.region === regionFilter);
-    }
-
-    const totalVehicles = filteredVehicles.length;
-
-    // Available, Active, In Shop Vehicles
-    const availableVehicles = filteredVehicles.filter(v => v.status === "Available").length;
-    const activeVehicles = filteredVehicles.filter(v => v.status === "On Trip").length;
-    const maintVehicles = filteredVehicles.filter(v => v.status === "In Shop").length;
-
-    const availPercent = totalVehicles > 0 ? Math.round((availableVehicles / totalVehicles) * 100) : 0;
-    const activePercent = totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0;
-    const maintPercent = totalVehicles > 0 ? Math.round((maintVehicles / totalVehicles) * 100) : 0;
-
-    // Filter Trips based on selected vehicles
-    const vehicleRegs = new Set(filteredVehicles.map(v => v.registration));
-    let filteredTrips = this.trips.filter(t => vehicleRegs.has(t.vehicleReg));
-
-    const activeTripsCount = filteredTrips.filter(t => t.status === "Dispatched").length;
-    const pendingTripsCount = filteredTrips.filter(t => t.status === "Draft").length;
-
-    // Drivers on duty (Available or On Trip)
-    const onDutyDrivers = this.drivers.filter(d => d.status === "Available" || d.status === "On Trip").length;
-    const onDutyPercent = this.drivers.length > 0 ? Math.round((onDutyDrivers / this.drivers.length) * 100) : 0;
-
-    // Utilization
-    const utilizationRate = totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0;
-
-    // Update UI elements
-    document.getElementById("kpi-available-vehicles").innerText = availableVehicles;
-    document.getElementById("sub-avail-percent").innerText = `${availPercent}% of filtered fleet`;
-
-    document.getElementById("kpi-active-vehicles").innerText = activeVehicles;
-    document.getElementById("sub-active-percent").innerText = `${activePercent}% of filtered fleet`;
-
-    document.getElementById("kpi-in-maintenance").innerText = maintVehicles;
-    document.getElementById("sub-maint-percent").innerText = `${maintPercent}% of filtered fleet`;
-
-    document.getElementById("kpi-active-trips").innerText = activeTripsCount;
-    document.getElementById("kpi-pending-trips").innerText = pendingTripsCount;
-
-    document.getElementById("kpi-drivers-on-duty").innerText = onDutyDrivers;
-    document.getElementById("sub-drivers-percent").innerText = `${onDutyPercent}% on duty / active`;
-
-    document.getElementById("kpi-fleet-utilization").innerText = `${utilizationRate}%`;
-    document.getElementById("utilization-progress-bar").style.width = `${utilizationRate}%`;
-
-    // Render Canvas Charts
-    this.drawStatusChart(filteredVehicles);
-    this.drawCostsChart(filteredVehicles);
-  }
-
-  drawStatusChart(vehicles) {
-    const canvas = document.getElementById("chart-fleet-status");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const statuses = {
-      "Available": vehicles.filter(v => v.status === "Available").length,
-      "On Trip": vehicles.filter(v => v.status === "On Trip").length,
-      "In Shop": vehicles.filter(v => v.status === "In Shop").length,
-      "Retired": vehicles.filter(v => v.status === "Retired").length
-    };
-
-    const colors = {
-      "Available": "#10b981",
-      "On Trip": "#6366f1",
-      "In Shop": "#f59e0b",
-      "Retired": "#ef4444"
-    };
-
-    const total = Object.values(statuses).reduce((a, b) => a + b, 0);
-    
-    const centerX = canvas.width / 3.4;
-    const centerY = canvas.height / 2;
-    const radius = Math.min(centerX, centerY) - 15;
-
-    if (total === 0) {
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "14px Outfit, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("No Vehicles Match Filters", centerX, centerY);
-      return;
-    }
-
-    let startAngle = -0.5 * Math.PI;
-
-    for (let status in statuses) {
-      const count = statuses[status];
-      if (count === 0) continue;
-
-      const sliceAngle = (count / total) * 2 * Math.PI;
-
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
-      ctx.strokeStyle = colors[status];
-      ctx.lineWidth = 18;
-      ctx.stroke();
-
-      startAngle += sliceAngle;
-    }
-
-    ctx.fillStyle = document.documentElement.getAttribute("data-theme") === "light" ? "#0f172a" : "#f8fafc";
-    ctx.font = "bold 20px Outfit, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(total, centerX, centerY - 5);
-    
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "11px Outfit, sans-serif";
-    ctx.fillText("Fleet Size", centerX, centerY + 15);
-
-    // Draw Legend on the right side
-    const legendX = canvas.width / 1.7;
-    let legendY = centerY - (Object.keys(statuses).length * 20) / 2 + 10;
-    
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-
-    for (let status in statuses) {
-      const count = statuses[status];
-      const pct = Math.round((count / total) * 100);
-
-      ctx.fillStyle = colors[status];
-      ctx.beginPath();
-      ctx.arc(legendX, legendY, 5, 0, 2 * Math.PI);
-      ctx.fill();
-
-      ctx.fillStyle = document.documentElement.getAttribute("data-theme") === "light" ? "#475569" : "#94a3b8";
-      ctx.font = "12px Outfit, sans-serif";
-      ctx.fillText(`${status}: ${count} (${pct}%)`, legendX + 15, legendY);
-
-      legendY += 22;
-    }
-  }
-
-  drawCostsChart(vehicles) {
-    const canvas = document.getElementById("chart-operational-costs");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const vehicleRegs = new Set(vehicles.map(v => v.registration));
-    
-    let fuelTotal = 0;
-    let maintTotal = 0;
-    let tollTotal = 0;
-
-    this.expenses.forEach(e => {
-      if (vehicleRegs.has(e.vehicleReg)) {
-        if (e.type === "Fuel") fuelTotal += e.amount;
-        else if (e.type === "Maintenance") maintTotal += e.amount;
-        else tollTotal += e.amount;
-      }
-    });
-
-    const categories = ["Fuel", "Maintenance", "Tolls & Other"];
-    const values = [fuelTotal, maintTotal, tollTotal];
-    const colors = ["#38bdf8", "#fbbf24", "#f472b6"];
-
-    const maxValue = Math.max(...values, 100); 
-    
-    const paddingLeft = 50;
-    const paddingRight = 20;
-    const paddingTop = 20;
-    const paddingBottom = 40;
-    
-    const chartWidth = canvas.width - paddingLeft - paddingRight;
-    const chartHeight = canvas.height - paddingTop - paddingBottom;
-
-    ctx.strokeStyle = document.documentElement.getAttribute("data-theme") === "light" ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)";
-    ctx.lineWidth = 1;
-    
-    const gridLines = 3;
-    for (let i = 0; i <= gridLines; i++) {
-      const y = paddingTop + (chartHeight / gridLines) * i;
-      ctx.beginPath();
-      ctx.moveTo(paddingLeft, y);
-      ctx.lineTo(canvas.width - paddingRight, y);
-      ctx.stroke();
-
-      const gridVal = Math.round(maxValue - (maxValue / gridLines) * i);
-      ctx.fillStyle = "#64748b";
-      ctx.font = "10px Outfit, sans-serif";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "middle";
-      ctx.fillText(`$${gridVal}`, paddingLeft - 10, y);
-    }
-
-    const barWidth = 35;
-    const gap = (chartWidth - barWidth * categories.length) / (categories.length + 1);
-
-    for (let i = 0; i < categories.length; i++) {
-      const val = values[i];
-      const barHeight = (val / maxValue) * chartHeight;
-      const x = paddingLeft + gap + (barWidth + gap) * i;
-      const y = canvas.height - paddingBottom - barHeight;
-
-      ctx.fillStyle = colors[i];
-      ctx.fillRect(x, y, barWidth, barHeight);
-
-      ctx.fillStyle = document.documentElement.getAttribute("data-theme") === "light" ? "#0f172a" : "#f8fafc";
-      ctx.font = "bold 11px Outfit, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(`$${val}`, x + barWidth / 2, y - 4);
-
-      ctx.fillStyle = "#64748b";
-      ctx.font = "11px Outfit, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.fillText(categories[i], x + barWidth / 2, canvas.height - paddingBottom + 8);
     }
   }
 
@@ -569,6 +320,17 @@ class AppState {
       }
     });
 
+    // Enforce UI restrictions on registries based on role
+    const isManager = role === "Fleet Manager";
+    const managerOnlyElements = document.querySelectorAll(".nav-roles-manager-only");
+    managerOnlyElements.forEach(el => {
+      if (isManager) {
+        el.classList.remove("hidden");
+      } else {
+        el.classList.add("hidden");
+      }
+    });
+
     // If active tab was disabled, fallback to dashboard
     if (currentActiveTab) {
       this.switchTab("dashboard");
@@ -576,6 +338,11 @@ class AppState {
 
     // Update privileges panel on Dashboard
     this.renderPrivileges();
+
+    // If currently on vehicles view, refresh list
+    if (window.location.hash.replace("#", "") === "vehicles") {
+      this.renderVehicles();
+    }
   }
 
   renderPrivileges() {
@@ -626,7 +393,9 @@ class AppState {
       });
 
       if (tabId === "dashboard") {
-        this.renderDashboard();
+        this.updateDashboard();
+      } else if (tabId === "vehicles") {
+        this.renderVehicles();
       }
 
       this.addLog(`Switched view to '${this.capitalizeFirstLetter(tabId)}'.`);
@@ -650,7 +419,7 @@ class AppState {
     this.updateUserUI();
     this.applyRBACRules();
     if (window.location.hash.replace("#", "") === "dashboard") {
-      this.renderDashboard();
+      this.updateDashboard();
     }
   }
 
@@ -660,9 +429,6 @@ class AppState {
     document.documentElement.setAttribute("data-theme", this.theme);
     this.updateThemeUI();
     this.addLog(`UI theme changed to '${this.theme}'.`);
-    if (this.currentUser && window.location.hash.replace("#", "") === "dashboard") {
-      this.renderDashboard();
-    }
   }
 
   updateThemeUI() {
@@ -674,6 +440,521 @@ class AppState {
     } else {
       sunIcon.classList.add("hidden");
       moonIcon.classList.remove("hidden");
+    }
+  }
+
+  updateDashboard() {
+    if (!this.currentUser) return;
+
+    // Filtered vehicles
+    const filteredVehicles = this.vehicles.filter(v => {
+      const matchType = !this.filters.type || v.type === this.filters.type;
+      const matchStatus = !this.filters.status || v.status === this.filters.status;
+      const matchRegion = !this.filters.region || v.region === this.filters.region;
+      return matchType && matchStatus && matchRegion;
+    });
+
+    // Counts
+    const availableVehicles = filteredVehicles.filter(v => v.status === "Available").length;
+    const activeVehicles = filteredVehicles.filter(v => v.status === "On Trip").length;
+    const maintenanceVehicles = filteredVehicles.filter(v => v.status === "In Shop").length;
+
+    // Fleet Utilization (%)
+    // Active fleet size = Available + On Trip
+    const activeFleetSize = availableVehicles + activeVehicles;
+    const utilization = activeFleetSize > 0 ? Math.round((activeVehicles / activeFleetSize) * 100) : 0;
+
+    // Active Trips (Dispatched trips)
+    // Filter trips by active vehicles
+    const filteredRegs = new Set(filteredVehicles.map(v => v.registration));
+    const activeTripsCount = this.trips.filter(t => t.status === "Dispatched" && filteredRegs.has(t.vehicle)).length;
+    const pendingTripsCount = this.trips.filter(t => t.status === "Draft" && filteredRegs.has(t.vehicle)).length;
+
+    // Drivers On Duty (Available + On Trip)
+    const driversOnDutyCount = this.drivers.filter(d => d.status === "Available" || d.status === "On Trip").length;
+
+    // Update DOM
+    document.getElementById("kpi-utilization").innerText = `${utilization}%`;
+    document.getElementById("utilization-progress").style.width = `${utilization}%`;
+    document.getElementById("kpi-active-vehicles").innerText = activeVehicles;
+    document.getElementById("kpi-available-vehicles").innerText = availableVehicles;
+    document.getElementById("kpi-in-maintenance").innerText = maintenanceVehicles;
+    document.getElementById("kpi-active-trips").innerText = activeTripsCount;
+    document.getElementById("kpi-pending-trips").innerText = pendingTripsCount;
+    document.getElementById("kpi-drivers-on-duty").innerText = driversOnDutyCount;
+
+    // Redraw Canvas Charts
+    this.drawFleetStatusChart(filteredVehicles);
+    this.drawFleetFinanceChart(filteredVehicles);
+  }
+
+  handleFilterChange() {
+    this.filters.type = document.getElementById("filter-type").value;
+    this.filters.status = document.getElementById("filter-status").value;
+    this.filters.region = document.getElementById("filter-region").value;
+    
+    this.addLog(`Filters changed - Type: "${this.filters.type || "All"}", Status: "${this.filters.status || "All"}", Region: "${this.filters.region || "All"}"`);
+    this.updateDashboard();
+  }
+
+  resetFilters() {
+    document.getElementById("filter-type").value = "";
+    document.getElementById("filter-status").value = "";
+    document.getElementById("filter-region").value = "";
+    
+    this.filters.type = "";
+    this.filters.status = "";
+    this.filters.region = "";
+    
+    this.addLog("Filters reset to default.");
+    this.updateDashboard();
+  }
+
+  drawFleetStatusChart(filteredVehicles) {
+    const canvas = document.getElementById("chart-fleet-status");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Group statuses
+    const counts = {
+      "Available": 0,
+      "On Trip": 0,
+      "In Shop": 0,
+      "Retired": 0
+    };
+
+    filteredVehicles.forEach(v => {
+      if (counts[v.status] !== undefined) {
+        counts[v.status]++;
+      }
+    });
+
+    const total = filteredVehicles.length;
+    if (total === 0) {
+      ctx.fillStyle = "var(--text-secondary)";
+      ctx.font = "14px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("No matching vehicle data", width / 2, height / 2);
+      return;
+    }
+
+    const colors = {
+      "Available": { fill: "#10b981", label: "Available" },
+      "On Trip": { fill: "#6366f1", label: "On Trip" },
+      "In Shop": { fill: "#f59e0b", label: "In Shop" },
+      "Retired": { fill: "#64748b", label: "Retired" }
+    };
+
+    // Draw Doughnut
+    let startAngle = -Math.PI / 2;
+    const centerX = width * 0.35;
+    const centerY = height * 0.5;
+    const outerRadius = Math.min(centerX, centerY) * 0.75;
+    const innerRadius = outerRadius * 0.65;
+
+    for (const status in counts) {
+      const count = counts[status];
+      if (count === 0) continue;
+
+      const sliceAngle = (count / total) * 2 * Math.PI;
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, outerRadius, startAngle, startAngle + sliceAngle);
+      ctx.arc(centerX, centerY, innerRadius, startAngle + sliceAngle, startAngle, true);
+      ctx.closePath();
+
+      ctx.fillStyle = colors[status].fill;
+      ctx.fill();
+
+      startAngle += sliceAngle;
+    }
+
+    // Total count inside doughnut
+    ctx.fillStyle = "var(--text-primary)";
+    ctx.font = "bold 20px Outfit, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(total, centerX, centerY - 6);
+
+    ctx.fillStyle = "var(--text-muted)";
+    ctx.font = "600 9px Outfit, sans-serif";
+    ctx.fillText("VEHICLES", centerX, centerY + 12);
+
+    // Legend
+    const legendX = width * 0.68;
+    let legendY = height * 0.25;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    for (const status in counts) {
+      const count = counts[status];
+      const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+
+      ctx.fillStyle = colors[status].fill;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(legendX, legendY - 6, 12, 12, 3);
+      } else {
+        ctx.rect(legendX, legendY - 6, 12, 12);
+      }
+      ctx.fill();
+
+      ctx.fillStyle = "var(--text-primary)";
+      ctx.font = "600 12px Outfit, sans-serif";
+      ctx.fillText(`${colors[status].label}`, legendX + 18, legendY);
+
+      ctx.fillStyle = "var(--text-secondary)";
+      ctx.font = "12px Outfit, sans-serif";
+      ctx.fillText(`${count} (${percent}%)`, legendX + 18, legendY + 14);
+
+      legendY += 40;
+    }
+  }
+
+  drawFleetFinanceChart(filteredVehicles) {
+    const canvas = document.getElementById("chart-fleet-finance");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const vehiclesToDisplay = filteredVehicles.slice(0, 5);
+    if (vehiclesToDisplay.length === 0) {
+      ctx.fillStyle = "var(--text-secondary)";
+      ctx.font = "14px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("No matching vehicle data", width / 2, height / 2);
+      return;
+    }
+
+    const margin = { top: 35, right: 20, bottom: 40, left: 45 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    let maxValue = 50;
+    vehiclesToDisplay.forEach(v => {
+      const odoK = v.odometer / 1000;
+      const costK = v.cost / 1000;
+      if (odoK > maxValue) maxValue = odoK;
+      if (costK > maxValue) maxValue = costK;
+    });
+
+    maxValue = Math.ceil(maxValue / 50) * 50;
+
+    ctx.fillStyle = "var(--text-muted)";
+    ctx.font = "10px Outfit, sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    const yTicks = 4;
+    for (let i = 0; i <= yTicks; i++) {
+      const val = (maxValue / yTicks) * i;
+      const y = margin.top + chartHeight - (val / maxValue) * chartHeight;
+      
+      ctx.strokeStyle = "var(--border-color)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(margin.left, y);
+      ctx.lineTo(margin.left + chartWidth, y);
+      ctx.stroke();
+
+      ctx.fillText(Math.round(val) + "k", margin.left - 8, y);
+    }
+
+    const groupWidth = chartWidth / vehiclesToDisplay.length;
+    const barWidth = groupWidth * 0.3;
+    const barSpacing = 4;
+
+    vehiclesToDisplay.forEach((v, index) => {
+      const groupX = margin.left + index * groupWidth;
+      const centerX = groupX + groupWidth / 2;
+
+      const odoK = v.odometer / 1000;
+      const costK = v.cost / 1000;
+
+      const odoHeight = (odoK / maxValue) * chartHeight;
+      const costHeight = (costK / maxValue) * chartHeight;
+
+      const odoY = margin.top + chartHeight - odoHeight;
+      const costY = margin.top + chartHeight - costHeight;
+
+      // Odometer (Blue)
+      const odoGrad = ctx.createLinearGradient(0, odoY, 0, margin.top + chartHeight);
+      odoGrad.addColorStop(0, "#38bdf8");
+      odoGrad.addColorStop(1, "#0284c7");
+      ctx.fillStyle = odoGrad;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(centerX - barWidth - barSpacing / 2, odoY, barWidth, odoHeight, [4, 4, 0, 0]);
+      } else {
+        ctx.rect(centerX - barWidth - barSpacing / 2, odoY, barWidth, odoHeight);
+      }
+      ctx.fill();
+
+      // Cost (Pink)
+      const costGrad = ctx.createLinearGradient(0, costY, 0, margin.top + chartHeight);
+      costGrad.addColorStop(0, "#f472b6");
+      costGrad.addColorStop(1, "#db2777");
+      ctx.fillStyle = costGrad;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(centerX + barSpacing / 2, costY, barWidth, costHeight, [4, 4, 0, 0]);
+      } else {
+        ctx.rect(centerX + barSpacing / 2, costY, barWidth, costHeight);
+      }
+      ctx.fill();
+
+      ctx.fillStyle = "var(--text-secondary)";
+      ctx.font = "600 10px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(v.registration, centerX, margin.top + chartHeight + 8);
+    });
+
+    ctx.strokeStyle = "var(--border-color)";
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top);
+    ctx.lineTo(margin.left, margin.top + chartHeight);
+    ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
+    ctx.stroke();
+
+    // Visual Legend
+    ctx.textAlign = "right";
+    ctx.font = "600 9px Outfit, sans-serif";
+    
+    ctx.fillStyle = "#38bdf8";
+    ctx.beginPath();
+    ctx.arc(width - 125, margin.top - 15, 4, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.fillStyle = "var(--text-secondary)";
+    ctx.fillText("Odometer (km)", width - 68, margin.top - 15);
+
+    ctx.fillStyle = "#f472b6";
+    ctx.beginPath();
+    ctx.arc(width - 50, margin.top - 15, 4, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.fillStyle = "var(--text-secondary)";
+    ctx.fillText("Cost ($)", width - 10, margin.top - 15);
+  }
+
+  renderVehicles() {
+    const searchVal = document.getElementById("vehicle-search").value.toLowerCase().trim();
+    const filterType = document.getElementById("vehicle-filter-type").value;
+    const filterStatus = document.getElementById("vehicle-filter-status").value;
+    const filterRegion = document.getElementById("vehicle-filter-region").value;
+    const sortBy = document.getElementById("vehicle-sort-by").value;
+
+    let filtered = this.vehicles.filter(v => {
+      const matchesSearch = v.registration.toLowerCase().includes(searchVal) || 
+                            v.name.toLowerCase().includes(searchVal);
+      const matchesType = !filterType || v.type === filterType;
+      const matchesStatus = !filterStatus || v.status === filterStatus;
+      const matchesRegion = !filterRegion || v.region === filterRegion;
+
+      return matchesSearch && matchesType && matchesStatus && matchesRegion;
+    });
+
+    // Sort
+    if (sortBy === "odometer-asc") {
+      filtered.sort((a, b) => a.odometer - b.odometer);
+    } else if (sortBy === "odometer-desc") {
+      filtered.sort((a, b) => b.odometer - a.odometer);
+    } else if (sortBy === "capacity-desc") {
+      filtered.sort((a, b) => b.capacity - a.capacity);
+    } else if (sortBy === "cost-desc") {
+      filtered.sort((a, b) => b.cost - a.cost);
+    }
+
+    const tbody = document.getElementById("vehicle-table-body");
+    if (!tbody) return;
+
+    const isManager = this.simulatedRole === "Fleet Manager";
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${isManager ? 9 : 8}" class="text-center" style="color: var(--text-muted); padding: 2rem;">No vehicles found matching filters.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(v => {
+      let badgeClass = "badge-driver"; // Available (green)
+      if (v.status === "On Trip") badgeClass = "badge-manager"; // Blue
+      else if (v.status === "In Shop") badgeClass = "badge-safety"; // Amber
+      else if (v.status === "Retired") badgeClass = "badge-finance"; // Muted Pink
+
+      const actionsHTML = isManager ? `
+        <td class="actions-cell">
+          <button class="btn btn-secondary btn-small btn-warning-small" onclick="app.openEditVehicleModal('${v.registration}')">Edit</button>
+          <button class="btn btn-danger btn-small" onclick="app.deleteVehicle('${v.registration}')">Delete</button>
+        </td>
+      ` : "";
+
+      return `
+        <tr>
+          <td style="font-weight: 600; font-family: monospace;">${v.registration}</td>
+          <td>${v.name}</td>
+          <td>${v.type}</td>
+          <td>${v.region}</td>
+          <td>${v.capacity.toLocaleString()} kg</td>
+          <td>${v.odometer.toLocaleString()} km</td>
+          <td>$${v.cost.toLocaleString()}</td>
+          <td><span class="badge ${badgeClass}">${v.status}</span></td>
+          ${actionsHTML}
+        </tr>
+      `;
+    }).join('');
+  }
+
+  openAddVehicleModal() {
+    if (this.simulatedRole !== "Fleet Manager") return;
+    
+    document.getElementById("vehicle-form-mode").value = "add";
+    document.getElementById("vehicle-old-reg").value = "";
+    document.getElementById("vehicle-modal-title").innerText = "Register New Vehicle";
+    
+    const regInput = document.getElementById("vehicle-reg");
+    regInput.value = "";
+    regInput.disabled = false;
+    
+    document.getElementById("vehicle-name").value = "";
+    document.getElementById("vehicle-type").value = "Van";
+    document.getElementById("vehicle-region").value = "North";
+    document.getElementById("vehicle-capacity").value = "";
+    document.getElementById("vehicle-odometer").value = "";
+    document.getElementById("vehicle-cost").value = "";
+    document.getElementById("vehicle-status").value = "Available";
+
+    document.getElementById("vehicle-form-error").classList.add("hidden");
+    document.getElementById("vehicle-modal").classList.add("active");
+  }
+
+  openEditVehicleModal(reg) {
+    if (this.simulatedRole !== "Fleet Manager") return;
+
+    const vehicle = this.vehicles.find(v => v.registration === reg);
+    if (!vehicle) return;
+
+    document.getElementById("vehicle-form-mode").value = "edit";
+    document.getElementById("vehicle-old-reg").value = reg;
+    document.getElementById("vehicle-modal-title").innerText = "Edit Vehicle Details";
+
+    const regInput = document.getElementById("vehicle-reg");
+    regInput.value = vehicle.registration;
+    regInput.disabled = true; // Registration number is unique/read-only on edit
+
+    document.getElementById("vehicle-name").value = vehicle.name;
+    document.getElementById("vehicle-type").value = vehicle.type;
+    document.getElementById("vehicle-region").value = vehicle.region;
+    document.getElementById("vehicle-capacity").value = vehicle.capacity;
+    document.getElementById("vehicle-odometer").value = vehicle.odometer;
+    document.getElementById("vehicle-cost").value = vehicle.cost;
+    document.getElementById("vehicle-status").value = vehicle.status;
+
+    document.getElementById("vehicle-form-error").classList.add("hidden");
+    document.getElementById("vehicle-modal").classList.add("active");
+  }
+
+  closeVehicleModal() {
+    document.getElementById("vehicle-modal").classList.remove("active");
+    document.getElementById("vehicle-form").reset();
+  }
+
+  handleVehicleFormSubmit() {
+    if (this.simulatedRole !== "Fleet Manager") return;
+
+    const mode = document.getElementById("vehicle-form-mode").value;
+    const oldReg = document.getElementById("vehicle-old-reg").value;
+    const reg = document.getElementById("vehicle-reg").value.trim().toUpperCase();
+    const name = document.getElementById("vehicle-name").value.trim();
+    const type = document.getElementById("vehicle-type").value;
+    const region = document.getElementById("vehicle-region").value;
+    const capacity = parseInt(document.getElementById("vehicle-capacity").value);
+    const odometer = parseInt(document.getElementById("vehicle-odometer").value);
+    const cost = parseInt(document.getElementById("vehicle-cost").value);
+    const status = document.getElementById("vehicle-status").value;
+
+    const errorDiv = document.getElementById("vehicle-form-error");
+
+    // Basic Validations
+    if (!reg || !name) {
+      errorDiv.innerText = "All fields are required.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    if (isNaN(capacity) || capacity <= 0) {
+      errorDiv.innerText = "Maximum load capacity must be a positive number.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    if (isNaN(odometer) || odometer < 0) {
+      errorDiv.innerText = "Odometer reading cannot be negative.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    if (isNaN(cost) || cost < 0) {
+      errorDiv.innerText = "Acquisition cost cannot be negative.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    // Uniqueness Check for Registration
+    if (mode === "add") {
+      const exists = this.vehicles.some(v => v.registration === reg);
+      if (exists) {
+        errorDiv.innerText = `A vehicle with registration number '${reg}' already exists.`;
+        errorDiv.classList.remove("hidden");
+        return;
+      }
+
+      // Add new vehicle
+      const newVehicle = { registration: reg, name, type, capacity, odometer, cost, status, region };
+      this.vehicles.push(newVehicle);
+      this.addLog(`Registered new vehicle: '${name}' (${reg}).`);
+    } else if (mode === "edit") {
+      const vehicleIndex = this.vehicles.findIndex(v => v.registration === oldReg);
+      if (vehicleIndex === -1) {
+        errorDiv.innerText = "Vehicle not found in database.";
+        errorDiv.classList.remove("hidden");
+        return;
+      }
+
+      // Update properties
+      this.vehicles[vehicleIndex].name = name;
+      this.vehicles[vehicleIndex].type = type;
+      this.vehicles[vehicleIndex].region = region;
+      this.vehicles[vehicleIndex].capacity = capacity;
+      this.vehicles[vehicleIndex].odometer = odometer;
+      this.vehicles[vehicleIndex].cost = cost;
+      this.vehicles[vehicleIndex].status = status;
+
+      this.addLog(`Updated vehicle details for registration: '${oldReg}'.`);
+    }
+
+    this.saveToStorage();
+    this.renderVehicles();
+    this.closeVehicleModal();
+  }
+
+  deleteVehicle(reg) {
+    if (this.simulatedRole !== "Fleet Manager") return;
+
+    if (confirm(`Are you sure you want to delete vehicle '${reg}'? This action cannot be undone.`)) {
+      this.vehicles = this.vehicles.filter(v => v.registration !== reg);
+      this.saveToStorage();
+      this.addLog(`Deleted vehicle registration: '${reg}'.`);
+      this.renderVehicles();
     }
   }
 }
@@ -743,30 +1024,36 @@ document.addEventListener("DOMContentLoaded", () => {
     app.logout();
   });
 
-  // Dashboard Filters change event
+  // Dashboard Filters Selector change bindings
   const filterType = document.getElementById("filter-type");
+  filterType.addEventListener("change", () => app.handleFilterChange());
+
   const filterStatus = document.getElementById("filter-status");
+  filterStatus.addEventListener("change", () => app.handleFilterChange());
+
   const filterRegion = document.getElementById("filter-region");
-  const resetFilters = document.getElementById("reset-filters");
+  filterRegion.addEventListener("change", () => app.handleFilterChange());
 
-  if (filterType && filterStatus && filterRegion && resetFilters) {
-    const handleFilterChange = () => {
-      app.renderDashboard();
-      app.addLog(`Filtered dashboard: Type=${filterType.value}, Status=${filterStatus.value}, Region=${filterRegion.value}`);
-    };
+  const btnResetFilters = document.getElementById("btn-reset-filters");
+  btnResetFilters.addEventListener("click", () => app.resetFilters());
 
-    filterType.addEventListener("change", handleFilterChange);
-    filterStatus.addEventListener("change", handleFilterChange);
-    filterRegion.addEventListener("change", handleFilterChange);
+  // Vehicle Registry Filters bindings
+  const vehicleSearch = document.getElementById("vehicle-search");
+  vehicleSearch.addEventListener("input", () => app.renderVehicles());
 
-    resetFilters.addEventListener("click", () => {
-      filterType.value = "All";
-      filterStatus.value = "All";
-      filterRegion.value = "All";
-      app.renderDashboard();
-      app.addLog("Dashboard filters reset to 'All'.");
-    });
-  }
+  document.getElementById("vehicle-filter-type").addEventListener("change", () => app.renderVehicles());
+  document.getElementById("vehicle-filter-status").addEventListener("change", () => app.renderVehicles());
+  document.getElementById("vehicle-filter-region").addEventListener("change", () => app.renderVehicles());
+  document.getElementById("vehicle-sort-by").addEventListener("change", () => app.renderVehicles());
+
+  const btnAddVehicle = document.getElementById("btn-add-vehicle");
+  btnAddVehicle.addEventListener("click", () => app.openAddVehicleModal());
+
+  const vehicleForm = document.getElementById("vehicle-form");
+  vehicleForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    app.handleVehicleFormSubmit();
+  });
 
   // Bind global routing to hashchange
   window.addEventListener("hashchange", () => {

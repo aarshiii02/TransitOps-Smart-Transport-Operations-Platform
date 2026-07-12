@@ -148,161 +148,121 @@
         
         <!-- DASHBOARD VIEW -->
         <section id="view-dashboard" class="view-section">
-          <!-- Filter Bar Section -->
-          <div class="filter-bar card">
-            <div class="filter-title">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
-              <span>Filter Fleet Analytics</span>
+          <div class="view-header">
+            <h2>Operations Dashboard</h2>
+            <p>Real-time KPIs and fleet utilization metrics.</p>
+          </div>
+
+          <!-- Dynamic Filters Panel -->
+          <div class="filters-panel card">
+            <div class="filter-group">
+              <label for="filter-type">Vehicle Type</label>
+              <select id="filter-type" class="filter-control">
+                <option value="">All Types</option>
+                <option value="Van">Van</option>
+                <option value="Heavy Truck">Heavy Truck</option>
+                <option value="Medium Truck">Medium Truck</option>
+                <option value="Light Truck">Light Truck</option>
+              </select>
             </div>
-            <div class="filters-grid">
-              <div class="input-group-inline">
-                <label for="filter-type">Vehicle Type</label>
-                <select id="filter-type" class="filter-control">
-                  <option value="All">All Types</option>
-                  <option value="Heavy Truck">Heavy Truck</option>
-                  <option value="Light Truck">Light Truck</option>
-                  <option value="Van">Van</option>
-                  <option value="Semi-Trailer">Semi-Trailer</option>
-                  <option value="Sedan">Sedan</option>
-                </select>
-              </div>
-              <div class="input-group-inline">
-                <label for="filter-status">Vehicle Status</label>
-                <select id="filter-status" class="filter-control">
-                  <option value="All">All Statuses</option>
-                  <option value="Available">Available</option>
-                  <option value="On Trip">On Trip</option>
-                  <option value="In Shop">In Shop</option>
-                  <option value="Retired">Retired</option>
-                </select>
-              </div>
-              <div class="input-group-inline">
-                <label for="filter-region">Region</label>
-                <select id="filter-region" class="filter-control">
-                  <option value="All">All Regions</option>
-                  <option value="North">North</option>
-                  <option value="South">South</option>
-                  <option value="East">East</option>
-                  <option value="West">West</option>
-                </select>
-              </div>
-              <div class="filter-actions-btn">
-                <button id="reset-filters" class="btn btn-secondary btn-sm">Reset</button>
-              </div>
+            <div class="filter-group">
+              <label for="filter-status">Vehicle Status</label>
+              <select id="filter-status" class="filter-control">
+                <option value="">All Statuses</option>
+                <option value="Available">Available</option>
+                <option value="On Trip">On Trip</option>
+                <option value="In Shop">In Shop</option>
+                <option value="Retired">Retired</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="filter-region">Region</label>
+              <select id="filter-region" class="filter-control">
+                <option value="">All Regions</option>
+                <option value="North">North</option>
+                <option value="South">South</option>
+                <option value="East">East</option>
+                <option value="West">West</option>
+                <option value="Central">Central</option>
+              </select>
+            </div>
+            <div class="filter-actions">
+              <button id="btn-reset-filters" class="btn btn-secondary">Reset Filters</button>
             </div>
           </div>
 
           <!-- KPI Cards Grid -->
           <div class="kpi-grid">
-            <!-- Available Vehicles -->
-            <div class="kpi-card card-interactive">
-              <div class="kpi-icon-wrapper success">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+            <div class="card kpi-card highlight">
+              <div class="kpi-icon-wrapper">
+                <svg class="kpi-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.53c-.26-.81-1-1.4-1.9-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
               </div>
-              <div class="kpi-info">
-                <span class="kpi-label">Available Vehicles</span>
-                <h3 class="kpi-value" id="kpi-available-vehicles">0</h3>
-                <span class="kpi-subtext" id="sub-avail-percent">0% of fleet</span>
-              </div>
-            </div>
-            
-            <!-- Active Vehicles -->
-            <div class="kpi-card card-interactive">
-              <div class="kpi-icon-wrapper primary">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 15H4v-2h8v2zm0-4H4v-2h8v2zm0-4H4V6h8v2zm7 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V6h4v2z"/></svg>
-              </div>
-              <div class="kpi-info">
-                <span class="kpi-label">Active Vehicles</span>
-                <h3 class="kpi-value" id="kpi-active-vehicles">0</h3>
-                <span class="kpi-subtext" id="sub-active-percent">0% of fleet</span>
-              </div>
-            </div>
-
-            <!-- Vehicles in Maintenance -->
-            <div class="kpi-card card-interactive">
-              <div class="kpi-icon-wrapper warning">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.3C.5 6.7.9 9.8 2.9 11.8c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.1z"/></svg>
-              </div>
-              <div class="kpi-info">
-                <span class="kpi-label">In Maintenance</span>
-                <h3 class="kpi-value" id="kpi-in-maintenance">0</h3>
-                <span class="kpi-subtext" id="sub-maint-percent">0% of fleet</span>
-              </div>
-            </div>
-
-            <!-- Active Trips -->
-            <div class="kpi-card card-interactive">
-              <div class="kpi-icon-wrapper active">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M2 12h5v5H2zm5.5 0h5v5h-5zM13 12h5v5h-5zm5.5 0h5v5h-5z"/></svg>
-              </div>
-              <div class="kpi-info">
-                <span class="kpi-label">Active Trips</span>
-                <h3 class="kpi-value" id="kpi-active-trips">0</h3>
-                <span class="kpi-subtext" id="sub-active-trips-lbl">Dispatched now</span>
-              </div>
-            </div>
-
-            <!-- Pending Trips -->
-            <div class="kpi-card card-interactive">
-              <div class="kpi-icon-wrapper draft">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-              </div>
-              <div class="kpi-info">
-                <span class="kpi-label">Pending Trips</span>
-                <h3 class="kpi-value" id="kpi-pending-trips">0</h3>
-                <span class="kpi-subtext" id="sub-pending-trips-lbl">Draft lifecycle state</span>
-              </div>
-            </div>
-
-            <!-- Drivers On Duty -->
-            <div class="kpi-card card-interactive">
-              <div class="kpi-icon-wrapper safety">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-              </div>
-              <div class="kpi-info">
-                <span class="kpi-label">Drivers On Duty</span>
-                <h3 class="kpi-value" id="kpi-drivers-on-duty">0</h3>
-                <span class="kpi-subtext" id="sub-drivers-percent">0% available</span>
-              </div>
-            </div>
-
-            <!-- Fleet Utilization -->
-            <div class="kpi-card card-interactive kpi-span-2">
-              <div class="kpi-info">
-                <span class="kpi-label">Fleet Utilization Rate</span>
-                <div class="util-value-container">
-                  <h3 class="kpi-value" id="kpi-fleet-utilization">0%</h3>
-                  <div class="progress-bar-wrapper">
-                    <div id="utilization-progress-bar" class="progress-bar" style="width: 0%"></div>
-                  </div>
+              <div class="kpi-data">
+                <span class="kpi-label">Fleet Utilization</span>
+                <h3 id="kpi-utilization" class="kpi-value">0%</h3>
+                <span class="kpi-subtext">Active trips vs active fleet</span>
+                <div class="progress-bar-container">
+                  <div id="utilization-progress" class="progress-bar" style="width: 0%"></div>
                 </div>
-                <span class="kpi-subtext">Active Trips / Registered fleet ratio</span>
+              </div>
+            </div>
+
+            <div class="card kpi-card">
+              <span class="kpi-label">Active Vehicles</span>
+              <h3 id="kpi-active-vehicles" class="kpi-value">0</h3>
+              <span class="kpi-subtext">Currently on trip</span>
+            </div>
+
+            <div class="card kpi-card">
+              <span class="kpi-label">Available Vehicles</span>
+              <h3 id="kpi-available-vehicles" class="kpi-value">0</h3>
+              <span class="kpi-subtext">Ready for dispatch</span>
+            </div>
+
+            <div class="card kpi-card">
+              <span class="kpi-label">In Maintenance</span>
+              <h3 id="kpi-in-maintenance" class="kpi-value">0</h3>
+              <span class="kpi-subtext">Status: "In Shop"</span>
+            </div>
+
+            <div class="card kpi-card">
+              <span class="kpi-label">Active Trips</span>
+              <h3 id="kpi-active-trips" class="kpi-value">0</h3>
+              <span class="kpi-subtext">Trips dispatched</span>
+            </div>
+
+            <div class="card kpi-card">
+              <span class="kpi-label">Pending Trips</span>
+              <h3 id="kpi-pending-trips" class="kpi-value">0</h3>
+              <span class="kpi-subtext">Trips in "Draft" state</span>
+            </div>
+
+            <div class="card kpi-card">
+              <span class="kpi-label">Drivers On Duty</span>
+              <h3 id="kpi-drivers-on-duty" class="kpi-value">0</h3>
+              <span class="kpi-subtext">Available & working drivers</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Visual Analytics Charts -->
+          <div class="dashboard-charts grid-2">
+            <div class="card">
+              <h3 style="margin-bottom: 0.5rem;">Fleet Status Distribution</h3>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">Visual breakdown of current vehicle statuses</p>
+              <div class="chart-container">
+                <canvas id="chart-fleet-status" width="300" height="220"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <h3 style="margin-bottom: 0.5rem;">Operational Metrics</h3>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">Odometer readings (km) vs Acquisition Costs ($) per vehicle</p>
+              <div class="chart-container">
+                <canvas id="chart-fleet-finance" width="300" height="220"></canvas>
               </div>
             </div>
           </div>
 
-          <!-- Charts Layout Grid -->
-          <div class="grid-2 mt-4">
-            <!-- Fleet Status Chart -->
-            <div class="card chart-card">
-              <h3>Fleet Status Distribution</h3>
-              <p class="chart-subtitle">Breakdown of active vehicle cycles</p>
-              <div class="chart-canvas-container">
-                <canvas id="chart-fleet-status" width="300" height="200"></canvas>
-              </div>
-            </div>
-
-            <!-- Operating Expenses Chart -->
-            <div class="card chart-card">
-              <h3>Weekly Operational Costs</h3>
-              <p class="chart-subtitle">Fuel vs. maintenance spending</p>
-              <div class="chart-canvas-container">
-                <canvas id="chart-operational-costs" width="300" height="200"></canvas>
-              </div>
-            </div>
-          </div>
-
-          <!-- Simulation Info Section -->
+          <!-- RBAC Details Grid -->
           <div class="grid-2 mt-4">
             <div class="card">
               <h3>Role Privileges for <span class="simulate-role-name">Fleet Manager</span></h3>
@@ -311,7 +271,7 @@
               </ul>
             </div>
             <div class="card">
-              <h3>System Logs (RBAC Demo)</h3>
+              <h3>System Logs</h3>
               <div class="system-logs-container" id="rbac-system-logs">
                 <div class="log-line">System initialized successfully.</div>
               </div>
@@ -319,16 +279,150 @@
           </div>
         </section>
 
+
         <!-- VEHICLE REGISTRY VIEW -->
         <section id="view-vehicles" class="view-section hidden">
           <div class="view-header">
             <h2>Vehicle Registry</h2>
-            <p>Manage and track fleet assets, statuses, and costs.</p>
+            <p>Manage, inspect, and track fleet assets, capacities, and costs.</p>
           </div>
+          
           <div class="card">
-            <p>This module requires <strong>Fleet Manager</strong> or <strong>Financial Analyst</strong> permissions.</p>
+            <!-- Registry Controls Header -->
+            <div class="registry-controls">
+              <div class="search-filter-bar">
+                <div class="search-input-wrapper">
+                  <svg class="search-icon-svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                  <input type="text" id="vehicle-search" class="search-control" placeholder="Search by model, registration...">
+                </div>
+                <select id="vehicle-filter-type" class="registry-select">
+                  <option value="">All Types</option>
+                  <option value="Van">Van</option>
+                  <option value="Heavy Truck">Heavy Truck</option>
+                  <option value="Medium Truck">Medium Truck</option>
+                  <option value="Light Truck">Light Truck</option>
+                </select>
+                <select id="vehicle-filter-status" class="registry-select">
+                  <option value="">All Statuses</option>
+                  <option value="Available">Available</option>
+                  <option value="On Trip">On Trip</option>
+                  <option value="In Shop">In Shop</option>
+                  <option value="Retired">Retired</option>
+                </select>
+                <select id="vehicle-filter-region" class="registry-select">
+                  <option value="">All Regions</option>
+                  <option value="North">North</option>
+                  <option value="South">South</option>
+                  <option value="East">East</option>
+                  <option value="West">West</option>
+                  <option value="Central">Central</option>
+                </select>
+                <select id="vehicle-sort-by" class="registry-select">
+                  <option value="">Sort By</option>
+                  <option value="odometer-asc">Odometer (Low to High)</option>
+                  <option value="odometer-desc">Odometer (High to Low)</option>
+                  <option value="capacity-desc">Capacity (High to Low)</option>
+                  <option value="cost-desc">Acquisition Cost (High to Low)</option>
+                </select>
+              </div>
+              <button id="btn-add-vehicle" class="btn btn-primary nav-roles-manager-only">Add Vehicle</button>
+            </div>
+
+            <!-- Table Container -->
+            <div class="table-container">
+              <table class="data-table" id="vehicle-table">
+                <thead>
+                  <tr>
+                    <th>Registration #</th>
+                    <th>Name / Model</th>
+                    <th>Type</th>
+                    <th>Region</th>
+                    <th>Max Load Capacity</th>
+                    <th>Odometer</th>
+                    <th>Acquisition Cost</th>
+                    <th>Status</th>
+                    <th class="nav-roles-manager-only">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="vehicle-table-body">
+                  <!-- Dynamically populated in app.js -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
+
+        <!-- ADD/EDIT VEHICLE MODAL OVERLAY -->
+        <div id="vehicle-modal" class="modal-overlay">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h3 id="vehicle-modal-title">Register New Vehicle</h3>
+              <button class="btn btn-icon close-modal-btn" onclick="app.closeVehicleModal()">&times;</button>
+            </div>
+            <form id="vehicle-form">
+              <input type="hidden" id="vehicle-form-mode" value="add"> <!-- 'add' or 'edit' -->
+              <input type="hidden" id="vehicle-old-reg" value=""> <!-- tracking key if changing reg -->
+              <div class="modal-body">
+                <div class="form-grid-2">
+                  <div class="input-group">
+                    <label for="vehicle-reg">Registration Number (Unique)</label>
+                    <input type="text" id="vehicle-reg" required placeholder="e.g. VAN-05">
+                  </div>
+                  <div class="input-group">
+                    <label for="vehicle-name">Vehicle Name / Model</label>
+                    <input type="text" id="vehicle-name" required placeholder="e.g. Ford Transit">
+                  </div>
+                  <div class="input-group">
+                    <label for="vehicle-type">Vehicle Type</label>
+                    <select id="vehicle-type" class="filter-control" style="background-color: var(--input-bg);" required>
+                      <option value="Van">Van</option>
+                      <option value="Heavy Truck">Heavy Truck</option>
+                      <option value="Medium Truck">Medium Truck</option>
+                      <option value="Light Truck">Light Truck</option>
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label for="vehicle-region">Operating Region</label>
+                    <select id="vehicle-region" class="filter-control" style="background-color: var(--input-bg);" required>
+                      <option value="North">North</option>
+                      <option value="South">South</option>
+                      <option value="East">East</option>
+                      <option value="West">West</option>
+                      <option value="Central">Central</option>
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label for="vehicle-capacity">Maximum Load Capacity (kg)</label>
+                    <input type="number" id="vehicle-capacity" required min="1" placeholder="e.g. 1200">
+                  </div>
+                  <div class="input-group">
+                    <label for="vehicle-odometer">Current Odometer (km)</label>
+                    <input type="number" id="vehicle-odometer" required min="0" placeholder="e.g. 45000">
+                  </div>
+                  <div class="input-group">
+                    <label for="vehicle-cost">Acquisition Cost ($)</label>
+                    <input type="number" id="vehicle-cost" required min="0" placeholder="e.g. 35000">
+                  </div>
+                  <div class="input-group">
+                    <label for="vehicle-status">Initial Status</label>
+                    <select id="vehicle-status" class="filter-control" style="background-color: var(--input-bg);" required>
+                      <option value="Available">Available</option>
+                      <option value="On Trip">On Trip</option>
+                      <option value="In Shop">In Shop</option>
+                      <option value="Retired">Retired</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="vehicle-form-error" class="error-msg mt-4 hidden"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="app.closeVehicleModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Vehicle</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
 
         <!-- DRIVER MANAGEMENT VIEW -->
         <section id="view-drivers" class="view-section hidden">
