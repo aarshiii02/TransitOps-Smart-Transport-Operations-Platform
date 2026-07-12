@@ -148,27 +148,172 @@
         
         <!-- DASHBOARD VIEW -->
         <section id="view-dashboard" class="view-section">
-          <div class="view-header">
-            <h2>Welcome to TransitOps Dashboard</h2>
-            <p>Operational KPIs and active fleet analytics.</p>
-          </div>
-          <div class="mock-content-placeholder">
-            <div class="alert alert-info">
-              <p>You have successfully logged in! The full application dashboard features (KPI metrics, filters, and reports) will be populated as you proceed with the next steps.</p>
+          <!-- Filter Bar Section -->
+          <div class="filter-bar card">
+            <div class="filter-title">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+              <span>Filter Fleet Analytics</span>
             </div>
-            <!-- Showcase RBAC visibility feedback -->
-            <div class="grid-2 mt-4">
-              <div class="card card-interactive">
-                <h3>Role Privileges for <span class="simulate-role-name">Fleet Manager</span></h3>
-                <ul class="role-privilege-list" id="role-privileges-list">
-                  <!-- Dynamically populated in app.js -->
-                </ul>
+            <div class="filters-grid">
+              <div class="input-group-inline">
+                <label for="filter-type">Vehicle Type</label>
+                <select id="filter-type" class="filter-control">
+                  <option value="All">All Types</option>
+                  <option value="Heavy Truck">Heavy Truck</option>
+                  <option value="Light Truck">Light Truck</option>
+                  <option value="Van">Van</option>
+                  <option value="Semi-Trailer">Semi-Trailer</option>
+                  <option value="Sedan">Sedan</option>
+                </select>
               </div>
-              <div class="card card-interactive">
-                <h3>System Logs (RBAC Demo)</h3>
-                <div class="system-logs-container" id="rbac-system-logs">
-                  <div class="log-line">System initialized successfully.</div>
+              <div class="input-group-inline">
+                <label for="filter-status">Vehicle Status</label>
+                <select id="filter-status" class="filter-control">
+                  <option value="All">All Statuses</option>
+                  <option value="Available">Available</option>
+                  <option value="On Trip">On Trip</option>
+                  <option value="In Shop">In Shop</option>
+                  <option value="Retired">Retired</option>
+                </select>
+              </div>
+              <div class="input-group-inline">
+                <label for="filter-region">Region</label>
+                <select id="filter-region" class="filter-control">
+                  <option value="All">All Regions</option>
+                  <option value="North">North</option>
+                  <option value="South">South</option>
+                  <option value="East">East</option>
+                  <option value="West">West</option>
+                </select>
+              </div>
+              <div class="filter-actions-btn">
+                <button id="reset-filters" class="btn btn-secondary btn-sm">Reset</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI Cards Grid -->
+          <div class="kpi-grid">
+            <!-- Available Vehicles -->
+            <div class="kpi-card card-interactive">
+              <div class="kpi-icon-wrapper success">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Available Vehicles</span>
+                <h3 class="kpi-value" id="kpi-available-vehicles">0</h3>
+                <span class="kpi-subtext" id="sub-avail-percent">0% of fleet</span>
+              </div>
+            </div>
+            
+            <!-- Active Vehicles -->
+            <div class="kpi-card card-interactive">
+              <div class="kpi-icon-wrapper primary">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 15H4v-2h8v2zm0-4H4v-2h8v2zm0-4H4V6h8v2zm7 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V6h4v2z"/></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Active Vehicles</span>
+                <h3 class="kpi-value" id="kpi-active-vehicles">0</h3>
+                <span class="kpi-subtext" id="sub-active-percent">0% of fleet</span>
+              </div>
+            </div>
+
+            <!-- Vehicles in Maintenance -->
+            <div class="kpi-card card-interactive">
+              <div class="kpi-icon-wrapper warning">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.3C.5 6.7.9 9.8 2.9 11.8c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.1z"/></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">In Maintenance</span>
+                <h3 class="kpi-value" id="kpi-in-maintenance">0</h3>
+                <span class="kpi-subtext" id="sub-maint-percent">0% of fleet</span>
+              </div>
+            </div>
+
+            <!-- Active Trips -->
+            <div class="kpi-card card-interactive">
+              <div class="kpi-icon-wrapper active">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M2 12h5v5H2zm5.5 0h5v5h-5zM13 12h5v5h-5zm5.5 0h5v5h-5z"/></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Active Trips</span>
+                <h3 class="kpi-value" id="kpi-active-trips">0</h3>
+                <span class="kpi-subtext" id="sub-active-trips-lbl">Dispatched now</span>
+              </div>
+            </div>
+
+            <!-- Pending Trips -->
+            <div class="kpi-card card-interactive">
+              <div class="kpi-icon-wrapper draft">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Pending Trips</span>
+                <h3 class="kpi-value" id="kpi-pending-trips">0</h3>
+                <span class="kpi-subtext" id="sub-pending-trips-lbl">Draft lifecycle state</span>
+              </div>
+            </div>
+
+            <!-- Drivers On Duty -->
+            <div class="kpi-card card-interactive">
+              <div class="kpi-icon-wrapper safety">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Drivers On Duty</span>
+                <h3 class="kpi-value" id="kpi-drivers-on-duty">0</h3>
+                <span class="kpi-subtext" id="sub-drivers-percent">0% available</span>
+              </div>
+            </div>
+
+            <!-- Fleet Utilization -->
+            <div class="kpi-card card-interactive kpi-span-2">
+              <div class="kpi-info">
+                <span class="kpi-label">Fleet Utilization Rate</span>
+                <div class="util-value-container">
+                  <h3 class="kpi-value" id="kpi-fleet-utilization">0%</h3>
+                  <div class="progress-bar-wrapper">
+                    <div id="utilization-progress-bar" class="progress-bar" style="width: 0%"></div>
+                  </div>
                 </div>
+                <span class="kpi-subtext">Active Trips / Registered fleet ratio</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Layout Grid -->
+          <div class="grid-2 mt-4">
+            <!-- Fleet Status Chart -->
+            <div class="card chart-card">
+              <h3>Fleet Status Distribution</h3>
+              <p class="chart-subtitle">Breakdown of active vehicle cycles</p>
+              <div class="chart-canvas-container">
+                <canvas id="chart-fleet-status" width="300" height="200"></canvas>
+              </div>
+            </div>
+
+            <!-- Operating Expenses Chart -->
+            <div class="card chart-card">
+              <h3>Weekly Operational Costs</h3>
+              <p class="chart-subtitle">Fuel vs. maintenance spending</p>
+              <div class="chart-canvas-container">
+                <canvas id="chart-operational-costs" width="300" height="200"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Simulation Info Section -->
+          <div class="grid-2 mt-4">
+            <div class="card">
+              <h3>Role Privileges for <span class="simulate-role-name">Fleet Manager</span></h3>
+              <ul class="role-privilege-list" id="role-privileges-list">
+                <!-- Dynamically populated in app.js -->
+              </ul>
+            </div>
+            <div class="card">
+              <h3>System Logs (RBAC Demo)</h3>
+              <div class="system-logs-container" id="rbac-system-logs">
+                <div class="log-line">System initialized successfully.</div>
               </div>
             </div>
           </div>
