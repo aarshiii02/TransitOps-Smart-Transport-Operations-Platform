@@ -785,13 +785,121 @@
         <!-- EXPENSES VIEW -->
         <section id="view-expenses" class="view-section hidden">
           <div class="view-header">
-            <h2>Fuel & Expenses</h2>
-            <p>Log costs and track total cost of ownership per vehicle.</p>
+            <h2>Fuel & Expense Management</h2>
+            <p>Monitor vehicle operating expenditures, log fuel logs, and track Total Cost of Ownership (TCO).</p>
           </div>
-          <div class="card">
-            <p>This module requires <strong>Fleet Manager</strong> or <strong>Financial Analyst</strong> permissions.</p>
+          
+          <div class="grid-2">
+            <!-- Left Side: Total Operational Cost Summary per Vehicle -->
+            <div class="card">
+              <h3 style="margin-bottom: 1.25rem;">Operating Cost per Vehicle</h3>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Aggregates all fuel expenses, toll/other costs, and completed maintenance work orders.</p>
+              <div class="table-container">
+                <table class="data-table" id="tco-table">
+                  <thead>
+                    <tr>
+                      <th>Vehicle</th>
+                      <th>Fuel Cost</th>
+                      <th>Maintenance</th>
+                      <th>Tolls & Other</th>
+                      <th>Total Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tco-table-body">
+                    <!-- Dynamically populated in app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Right Side: Expense Log List -->
+            <div class="card">
+              <div class="registry-controls" style="margin-bottom: 1.25rem;">
+                <div class="search-filter-bar" style="width: 100%; justify-content: space-between;">
+                  <h3 style="margin: 0;">Expense Log</h3>
+                  <select id="expense-filter-type" class="registry-select">
+                    <option value="">All Types</option>
+                    <option value="Fuel">Fuel</option>
+                    <option value="Tolls">Tolls</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-container" style="max-height: 380px; overflow-y: auto;">
+                <table class="data-table" id="expense-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Vehicle</th>
+                      <th>Type</th>
+                      <th>Cost</th>
+                      <th>Date</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody id="expense-table-body">
+                    <!-- Dynamically populated in app.js -->
+                  </tbody>
+                </table>
+              </div>
+              <button id="btn-add-expense" class="btn btn-primary mt-4" style="width: 100%;" onclick="app.openCreateExpenseModal()">Log Manual Expense</button>
+            </div>
           </div>
         </section>
+
+        <!-- LOG EXPENSE MODAL OVERLAY -->
+        <div id="expense-modal" class="modal-overlay">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h3>Log Operating Expense</h3>
+              <button class="btn btn-icon close-modal-btn" onclick="app.closeExpenseModal()">&times;</button>
+            </div>
+            <form id="expense-form">
+              <div class="modal-body">
+                <div class="form-grid-2">
+                  <div class="input-group">
+                    <label for="expense-vehicle">Select Vehicle</label>
+                    <select id="expense-vehicle" class="filter-control" style="background-color: var(--input-bg);" required>
+                      <!-- Dynamically loaded active vehicles -->
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label for="expense-type">Expense Type</label>
+                    <select id="expense-type" class="filter-control" style="background-color: var(--input-bg);" required onchange="app.toggleExpenseLitersInput()">
+                      <option value="Fuel">Fuel Log</option>
+                      <option value="Tolls">Tolls</option>
+                      <option value="Maintenance">Maintenance Service</option>
+                      <option value="Other">Other Miscellaneous</option>
+                    </select>
+                  </div>
+                  <div class="input-group" id="expense-liters-container">
+                    <label for="expense-liters">Volume (Liters)</label>
+                    <input type="number" id="expense-liters" min="1" placeholder="e.g. 45">
+                  </div>
+                  <div class="input-group">
+                    <label for="expense-cost">Cost Amount ($)</label>
+                    <input type="number" id="expense-cost" required min="1" placeholder="e.g. 75">
+                  </div>
+                  <div class="input-group">
+                    <label for="expense-date">Date Logged</label>
+                    <input type="date" id="expense-date" required>
+                  </div>
+                  <div class="input-group">
+                    <label for="expense-desc">Description / Notes</label>
+                    <input type="text" id="expense-desc" required placeholder="e.g. Oil filter swap / Highway toll">
+                  </div>
+                </div>
+                <div id="expense-form-error" class="error-msg mt-4 hidden"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="app.closeExpenseModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Expense</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
 
         <!-- REPORTS VIEW -->
         <section id="view-reports" class="view-section hidden">

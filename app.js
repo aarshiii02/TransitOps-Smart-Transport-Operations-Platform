@@ -348,6 +348,8 @@ class AppState {
       this.renderTrips();
     } else if (window.location.hash.replace("#", "") === "maintenance") {
       this.renderMaintenance();
+    } else if (window.location.hash.replace("#", "") === "expenses") {
+      this.renderExpenses();
     }
   }
 
@@ -408,6 +410,8 @@ class AppState {
         this.renderTrips();
       } else if (tabId === "maintenance") {
         this.renderMaintenance();
+      } else if (tabId === "expenses") {
+        this.renderExpenses();
       }
 
       this.addLog(`Switched view to '${this.capitalizeFirstLetter(tabId)}'.`);
@@ -1625,6 +1629,180 @@ class AppState {
     this.saveToStorage();
     this.renderMaintenance();
   }
+
+  renderExpenses() {
+    const filterType = document.getElementById("expense-filter-type").value;
+
+    // Calculate TCO per vehicle: Sum of all expenses + completed maintenance costs
+    const tcoBody = document.getElementById("tco-table-body");
+    if (tcoBody) {
+      tcoBody.innerHTML = this.vehicles.map(v => {
+        // Sum fuel costs
+        const fuelCost = this.expenses
+          .filter(e => e.vehicle === v.registration && e.type === "Fuel")
+          .reduce((sum, e) => sum + e.cost, 0);
+
+        // Sum maintenance costs from both manual expense logs and completed maintenance logs
+        const manualMaintCost = this.expenses
+          .filter(e => e.vehicle === v.registration && e.type === "Maintenance")
+          .reduce((sum, e) => sum + e.cost, 0);
+        const loggedMaintCost = this.maintenance
+          .filter(m => m.vehicle === v.registration && m.status === "Completed")
+          .reduce((sum, m) => sum + m.cost, 0);
+        const maintCost = manualMaintCost + loggedMaintCost;
+
+        // Sum tolls & other costs
+        const tollsOtherCost = this.expenses
+          .filter(e => e.vehicle === v.registration && (e.type === "Tolls" || e.type === "Other"))
+          .reduce((sum, e) => sum + e.cost, 0);
+
+        const totalCost = fuelCost + maintCost + tollsOtherCost;
+
+        return `
+          <tr>
+            <td style="font-weight: 600; font-family: monospace;">${v.registration}</td>
+            <td>$${fuelCost.toLocaleString()}</td>
+            <td>$${maintCost.toLocaleString()}</td>
+            <td>$${tollsOtherCost.toLocaleString()}</td>
+            <td style="font-weight: 700; color: var(--success);">$${totalCost.toLocaleString()}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Render individual expense logs
+    let filtered = this.expenses.filter(e => {
+      return !filterType || e.type === filterType;
+    });
+
+    // Sort by date descending
+    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const expenseBody = document.getElementById("expense-table-body");
+    if (expenseBody) {
+      if (filtered.length === 0) {
+        expenseBody.innerHTML = `<tr><td colspan="6" class="text-center" style="color: var(--text-muted); padding: 1.5rem;">No operating expenses recorded.</td></tr>`;
+        return;
+      }
+
+      expenseBody.innerHTML = filtered.map(e => {
+        let badgeClass = "badge-muted";
+        if (e.type === "Fuel") badgeClass = "badge-driver";
+        else if (e.type === "Maintenance") badgeClass = "badge-safety";
+        else if (e.type === "Tolls") badgeClass = "badge-manager";
+        else if (e.type === "Other") badgeClass = "badge-finance";
+
+        const descLiters = e.type === "Fuel" && e.liters ? `${e.description} (${e.liters} L)` : e.description;
+
+        return `
+          <tr>
+            <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">${e.id}</td>
+            <td style="font-family: monospace; font-weight: 600;">${e.vehicle}</td>
+            <td><span class="badge ${badgeClass}">${e.type}</span></td>
+            <td style="font-weight: 600;">$${e.cost.toLocaleString()}</td>
+            <td>${e.date}</td>
+            <td style="font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${descLiters}">${descLiters}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  openCreateExpenseModal() {
+    // Populate vehicles dropdown (exclude Retired)
+    const vehicleSelect = document.getElementById("expense-vehicle");
+    const activeVehicles = this.vehicles.filter(v => v.status !== "Retired");
+
+    if (activeVehicles.length === 0) {
+      vehicleSelect.innerHTML = `<option value="">No vehicles found</option>`;
+    } else {
+      vehicleSelect.innerHTML = activeVehicles.map(v => 
+        `<option value="${v.registration}">${v.registration} - ${v.name}</option>`
+      ).join('');
+    }
+
+    // Reset fields
+    document.getElementById("expense-type").value = "Fuel";
+    document.getElementById("expense-liters").value = "";
+    document.getElementById("expense-cost").value = "";
+    document.getElementById("expense-date").value = new Date().toISOString().split("T")[0];
+    document.getElementById("expense-desc").value = "";
+
+    this.toggleExpenseLitersInput();
+    document.getElementById("expense-form-error").classList.add("hidden");
+    document.getElementById("expense-modal").classList.add("active");
+  }
+
+  closeExpenseModal() {
+    document.getElementById("expense-modal").classList.remove("active");
+    document.getElementById("expense-form").reset();
+  }
+
+  toggleExpenseLitersInput() {
+    const type = document.getElementById("expense-type").value;
+    const container = document.getElementById("expense-liters-container");
+    const input = document.getElementById("expense-liters");
+    if (container && input) {
+      if (type === "Fuel") {
+        container.style.display = "block";
+        input.required = true;
+      } else {
+        container.style.display = "none";
+        input.required = false;
+        input.value = "";
+      }
+    }
+  }
+
+  handleExpenseFormSubmit() {
+    const vehicleReg = document.getElementById("expense-vehicle").value;
+    const type = document.getElementById("expense-type").value;
+    const litersVal = document.getElementById("expense-liters").value;
+    const cost = parseInt(document.getElementById("expense-cost").value);
+    const date = document.getElementById("expense-date").value;
+    const description = document.getElementById("expense-desc").value.trim();
+
+    const errorDiv = document.getElementById("expense-form-error");
+
+    if (!vehicleReg || !type || isNaN(cost) || !date || !description) {
+      errorDiv.innerText = "All fields are required.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    if (cost <= 0) {
+      errorDiv.innerText = "Expense cost must be greater than zero.";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    let liters = null;
+    if (type === "Fuel") {
+      liters = parseInt(litersVal);
+      if (isNaN(liters) || liters <= 0) {
+        errorDiv.innerText = "Fuel volume must be a positive number of liters.";
+        errorDiv.classList.remove("hidden");
+        return;
+      }
+    }
+
+    const expId = `EXP-${400 + this.expenses.length + 1}`;
+    const newExpense = {
+      id: expId,
+      vehicle: vehicleReg,
+      type,
+      liters,
+      cost,
+      date,
+      description
+    };
+
+    this.expenses.push(newExpense);
+    this.addLog(`Recorded manual expense: '${expId}' ($${cost}) for vehicle '${vehicleReg}'.`);
+    this.saveToStorage();
+    this.renderExpenses();
+    this.closeExpenseModal();
+  }
 }
 
 // Instantiate state globally
@@ -1774,6 +1952,20 @@ document.addEventListener("DOMContentLoaded", () => {
     maintenanceForm.addEventListener("submit", (e) => {
       e.preventDefault();
       app.handleMaintenanceFormSubmit();
+    });
+  }
+
+  // Expense Management bindings
+  const expFilterType = document.getElementById("expense-filter-type");
+  if (expFilterType) {
+    expFilterType.addEventListener("change", () => app.renderExpenses());
+  }
+
+  const expenseForm = document.getElementById("expense-form");
+  if (expenseForm) {
+    expenseForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      app.handleExpenseFormSubmit();
     });
   }
 
